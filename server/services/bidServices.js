@@ -1,5 +1,6 @@
 const redis = require('../redis');
 const { Auction, Bid, User } = require('../models');
+const { broadcastAuction, notifyUser } = require('../utils/broadcast');
 
 async function setAuctionStatus(auctionId, status) {
   await redis.set(`auction:${auctionId}:status`, status);
@@ -25,7 +26,6 @@ async function placeBid(auctionId, userId, amount) {
     if (status !== 'live') throw new Error('AUCTION_NOT_LIVE');
 
     const highestRaw = await redis.get(`auction:${auctionId}:highest`);
-    // Upstash Redis returns parsed objects directly, no need to JSON.parse
     const highest = highestRaw;
 
     const auction = await Auction.findByPk(auctionId);
@@ -37,13 +37,48 @@ async function placeBid(auctionId, userId, amount) {
 
     const bid = await Bid.create({ auctionId, bidderId: userId, amount });
 
-    await redis.set(`auction:${auctionId}:highest`, JSON.stringify({
+    const user = await User.findByPk(userId);
+
+    const newHighestBid = {
       amount: Number(amount),
       bidId: bid.id,
       userId,
-      displayName: (await User.findByPk(userId)).displayName,
+      displayName: user.displayName,
       at: Date.now(),
-    }));
+    };
+
+    await redis.set(`auction:${auctionId}:highest`, JSON.stringify(newHighestBid));
+
+    broadcastAuction(auctionId, 'bid:new', {
+      bid: {
+        id: bid.id,
+        amount: Number(amount),
+        bidderId: userId,
+        bidderName: user.displayName,
+        createdAt: bid.createdAt
+      },
+      auction: {
+        id: auctionId,
+        currentHighest: newHighestBid
+      }
+    });
+
+    if (highest?.userId && highest.userId !== userId) {
+      notifyUser(highest.userId, 'bid:outbid', {
+        auctionId,
+        outbidBy: {
+          userId,
+          displayName: user.displayName,
+          amount: Number(amount)
+        },
+        previousAmount: highest.amount
+      });
+
+      broadcastAuction(auctionId, 'bid:outbid', {
+        message: 'A bidder has been outbid',
+        newLeadingBid: Number(amount)
+      });
+    }
 
     return bid;
   } finally {
@@ -55,6 +90,7 @@ async function placeBid(auctionId, userId, amount) {
 async function initializeAuction(auctionId) {
   await setAuctionStatus(auctionId, 'live');
   const auction = await Auction.findByPk(auctionId);
+  
   if (auction.startingPrice > 0) {
     await redis.set(`auction:${auctionId}:highest`, JSON.stringify({
       amount: auction.startingPrice,
@@ -64,10 +100,35 @@ async function initializeAuction(auctionId) {
       at: Date.now(),
     }));
   }
+
+  broadcastAuction(auctionId, 'auction:started', {
+    auction: {
+      id: auctionId,
+      title: auction.title,
+      startingPrice: auction.startingPrice,
+      bidIncrement: auction.bidIncrement,
+      endAt: auction.endAt
+    },
+    message: 'Auction is now live and accepting bids!'
+  });
 }
 
 async function endAuction(auctionId) {
+  const auction = await Auction.findByPk(auctionId);
+  const finalHighestBid = await redis.get(`auction:${auctionId}:highest`);
+  
   await setAuctionStatus(auctionId, 'ended');
+
+  broadcastAuction(auctionId, 'auction:ended', {
+    auction: {
+      id: auctionId,
+      title: auction.title,
+      status: auction.status
+    },
+    finalBid: finalHighestBid,
+    message: 'Auction has ended!'
+  });
+
   await cleanupAuction(auctionId);
 }
 

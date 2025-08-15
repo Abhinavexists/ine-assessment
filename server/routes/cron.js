@@ -1,10 +1,11 @@
 const express = require('express');
 const { Auction } = require('../models');
 const { initializeAuction, endAuction } = require('../services/bidServices');
+const { broadcastGlobal } = require('../utils/broadcast');
 const { Op } = require('sequelize');
 const router = express.Router();
 
-router.post('/tick', async (req, res) => {
+router.post('/tick', async (_req, res) => {
   try {
     const now = new Date();
     console.log(`Cron tick at ${now.toISOString()}`);
@@ -27,14 +28,12 @@ router.post('/tick', async (req, res) => {
         
         console.log(`Started auction ${auction.id}: ${auction.title}`);
         
-        const io = req.app.get('io');
-        if (io) {
-          io.emit('auction-started', {
-            auctionId: auction.id,
-            title: auction.title,
-            startingPrice: auction.startingPrice
-          });
-        }
+        broadcastGlobal('auction:system:started', {
+          auctionId: auction.id,
+          title: auction.title,
+          startingPrice: auction.startingPrice,
+          endAt: auction.endAt
+        });
         
       } catch (error) {
         console.error(`Error starting auction ${auction.id}:`, error);
@@ -56,14 +55,11 @@ router.post('/tick', async (req, res) => {
         
         console.log(`Ended auction ${auction.id}: ${auction.title}`);
         
-        const io = req.app.get('io');
-        if (io) {
-          io.to(`auction-${auction.id}`).emit('auction-ended', {
-            auctionId: auction.id,
-            status: 'ended',
-            title: auction.title
-          });
-        }
+        broadcastGlobal('auction:system:ended', {
+          auctionId: auction.id,
+          title: auction.title,
+          reason: 'Time expired'
+        });
         
       } catch (error) {
         console.error(`Error ending auction ${auction.id}:`, error);

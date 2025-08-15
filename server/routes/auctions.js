@@ -2,6 +2,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { Auction, Bid, User } = require('../models');
 const { placeBid, endAuction } = require('../services/bidServices');
+const { broadcastAuction, notifyUser } = require('../utils/broadcast');
 const redis = require('../redis');
 const router = express.Router();
 
@@ -173,21 +174,6 @@ router.post('/:id/bid', async (req, res) => {
     
     const bid = await placeBid(auctionId, userId, amount);
     
-    const highestBidRaw = await redis.get(`auction:${auctionId}:highest`);
-    
-    const io = req.app.get('io');
-    io.to(`auction-${auctionId}`).emit('bid-update', {
-      auctionId,
-      bid: {
-        id: bid.id,
-        amount: bid.amount,
-        bidderId: bid.bidderId,
-        bidderName: user.displayName,
-        createdAt: bid.createdAt
-      },
-      currentHighest: highestBidRaw
-    });
-    
     res.status(201).json({
       message: 'Bid placed successfully',
       bid: {
@@ -329,12 +315,33 @@ router.post('/:id/accept', async (req, res) => {
     await auction.update({ status: 'closed' });
     await endAuction(auctionId);
     
-    const io = req.app.get('io');
-    io.to(`auction-${auctionId}`).emit('auction-ended', {
-      auctionId,
-      status: 'closed',
-      winningBid: highestBidRaw
+    const winner = await User.findByPk(highestBidRaw.userId);
+    
+    broadcastAuction(auctionId, 'seller:decision', {
+      decision: 'ACCEPTED',
+      auction: {
+        id: auctionId,
+        title: auction.title,
+        status: 'closed'
+      },
+      winningBid: {
+        ...highestBidRaw,
+        winnerName: winner?.displayName || 'Unknown'
+      },
+      message: 'Congratulations! The seller has accepted the winning bid!'
     });
+
+    if (highestBidRaw.userId) {
+      notifyUser(highestBidRaw.userId, 'auction:won', {
+        auctionId,
+        auction: {
+          title: auction.title,
+          sellerName: auction.seller?.displayName || 'Seller'
+        },
+        winningBid: highestBidRaw,
+        message: `Congratulations! You won the auction for "${auction.title}"!`
+      });
+    }
     
     res.json({
       message: 'Bid accepted successfully',
@@ -376,12 +383,27 @@ router.post('/:id/reject', async (req, res) => {
     await auction.update({ status: 'ended' });
     await endAuction(auctionId);
     
-    const io = req.app.get('io');
-    io.to(`auction-${auctionId}`).emit('auction-ended', {
-      auctionId,
-      status: 'ended',
-      rejectedBid: highestBidRaw
+    broadcastAuction(auctionId, 'seller:decision', {
+      decision: 'REJECTED',
+      auction: {
+        id: auctionId,
+        title: auction.title,
+        status: 'ended'
+      },
+      rejectedBid: highestBidRaw,
+      message: 'The seller has rejected all bids. Auction ended without a sale.'
     });
+    
+    if (highestBidRaw?.userId) {
+      notifyUser(highestBidRaw.userId, 'bid:rejected', {
+        auctionId,
+        auction: {
+          title: auction.title
+        },
+        rejectedBid: highestBidRaw,
+        message: `Your bid on "${auction.title}" was not accepted by the seller.`
+      });
+    }
     
     res.json({
       message: 'Bid rejected successfully',

@@ -41,23 +41,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-  
-  socket.on('join-auction', (auctionId) => {
-    socket.join(`auction-${auctionId}`);
-    console.log(`User ${socket.id} joined auction ${auctionId}`);
-  });
-  
-  socket.on('leave-auction', (auctionId) => {
-    socket.leave(`auction-${auctionId}`);
-    console.log(`User ${socket.id} left auction ${auctionId}`);
-  });
-  
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
+const { initSockets } = require('./ws');
+const { setIO } = require('./utils/broadcast');
+
+initSockets(io);
+setIO(io);
 
 (async () => {
   try {
