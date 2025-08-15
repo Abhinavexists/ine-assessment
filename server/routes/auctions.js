@@ -3,6 +3,8 @@ const { Op } = require('sequelize');
 const { Auction, Bid, User } = require('../models');
 const { placeBid, endAuction } = require('../services/bidServices');
 const { broadcastAuction, notifyUser } = require('../utils/broadcast');
+const { sendBidAcceptedEmail, sendBidAcceptedSellerEmail, sendBidRejectedEmail } = require('../services/emailService');
+const { generateInvoice } = require('../services/invoiceService');
 const redis = require('../redis');
 const router = express.Router();
 
@@ -315,7 +317,47 @@ router.post('/:id/accept', async (req, res) => {
     await auction.update({ status: 'closed' });
     await endAuction(auctionId);
     
+    const fullAuction = await Auction.findByPk(auctionId, {
+      include: [{ model: User, as: 'seller' }]
+    });
+    
     const winner = await User.findByPk(highestBidRaw.userId);
+    
+    let invoiceBuffer = null;
+    try {
+      if (winner && fullAuction.seller) {
+        invoiceBuffer = await generateInvoice({
+          auction: fullAuction,
+          buyer: winner,
+          seller: fullAuction.seller,
+          amount: highestBidRaw.amount,
+          bidId: highestBidRaw.bidId
+        });
+        console.log('Invoice generated successfully');
+      }
+    } catch (error) {
+      console.error('Failed to generate invoice:', error);
+    }
+
+    try {
+      if (winner) {
+        await sendBidAcceptedEmail(winner, fullAuction, highestBidRaw.amount, invoiceBuffer);
+        console.log('Acceptance email sent to buyer');
+      }
+      
+      if (fullAuction.seller) {
+        await sendBidAcceptedSellerEmail(
+          fullAuction.seller, 
+          fullAuction, 
+          highestBidRaw.amount, 
+          winner?.displayName || 'Unknown Buyer', 
+          invoiceBuffer
+        );
+        console.log('Confirmation email sent to seller');
+      }
+    } catch (error) {
+      console.error('Failed to send emails:', error);
+    }
     
     broadcastAuction(auctionId, 'seller:decision', {
       decision: 'ACCEPTED',
@@ -336,7 +378,7 @@ router.post('/:id/accept', async (req, res) => {
         auctionId,
         auction: {
           title: auction.title,
-          sellerName: auction.seller?.displayName || 'Seller'
+          sellerName: fullAuction.seller?.displayName || 'Seller'
         },
         winningBid: highestBidRaw,
         message: `Congratulations! You won the auction for "${auction.title}"!`
@@ -383,6 +425,18 @@ router.post('/:id/reject', async (req, res) => {
     await auction.update({ status: 'ended' });
     await endAuction(auctionId);
     
+    if (highestBidRaw?.userId) {
+      try {
+        const buyer = await User.findByPk(highestBidRaw.userId);
+        if (buyer) {
+          await sendBidRejectedEmail(buyer, auction, highestBidRaw.amount);
+          console.log('Rejection email sent to buyer');
+        }
+      } catch (error) {
+        console.error('Failed to send rejection email:', error);
+      }
+    }
+      
     broadcastAuction(auctionId, 'seller:decision', {
       decision: 'REJECTED',
       auction: {
