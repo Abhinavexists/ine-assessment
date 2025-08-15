@@ -1,5 +1,5 @@
 const redis = require('../redis');
-const { Auction, Bid, User } = require('../../models');
+const { Auction, Bid, User } = require('../models');
 
 async function setAuctionStatus(auctionId, status) {
   await redis.set(`auction:${auctionId}:status`, status);
@@ -25,13 +25,14 @@ async function placeBid(auctionId, userId, amount) {
     if (status !== 'live') throw new Error('AUCTION_NOT_LIVE');
 
     const highestRaw = await redis.get(`auction:${auctionId}:highest`);
-    const highest = highestRaw ? JSON.parse(highestRaw) : null;
+    // Upstash Redis returns parsed objects directly, no need to JSON.parse
+    const highest = highestRaw;
 
     const auction = await Auction.findByPk(auctionId);
     const now = new Date();
     if (now < auction.startAt || now > auction.endAt) throw new Error('AUCTION_OUT_OF_WINDOW');
 
-    const minAmount = Math.max(auction.startingPrice, highest?.amount || 0) + Number(auction.bidIncrement);
+    const minAmount = Math.max(Number(auction.startingPrice), Number(highest?.amount) || 0) + Number(auction.bidIncrement);
     if (Number(amount) < minAmount) throw new Error('BID_TOO_LOW');
 
     const bid = await Bid.create({ auctionId, bidderId: userId, amount });

@@ -1,6 +1,6 @@
-const User = require('../../models/user');
-const Auction = require('../../models/auction');
-const Bid = require('../../models/bid');
+const User = require('./user');
+const Auction = require('./auction');
+const Bid = require('./bid');
 
 User.hasMany(Auction, { foreignKey: 'sellerId', as: 'auctions' });
 Auction.belongsTo(User, { foreignKey: 'sellerId', as: 'seller' });
