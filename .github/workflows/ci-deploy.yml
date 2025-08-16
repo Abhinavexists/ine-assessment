@@ -33,8 +33,8 @@ jobs:
       - name: Build client
         working-directory: client
         env:
-          VITE_API_URL: https://your-app-name.onrender.com/api
-          VITE_API_WS: https://your-app-name.onrender.com
+          VITE_API_URL: https://ine-auction.onrender.com/api
+          VITE_API_WS: https://ine-auction.onrender.com
         run: npm run build
 
   deploy:
