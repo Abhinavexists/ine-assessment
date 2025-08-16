@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -29,82 +30,68 @@ export default function Notifications() {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const getNotificationStyle = (type) => {
-    const baseStyle = {
-      padding: '12px 16px',
-      marginBottom: '8px',
-      borderRadius: '4px',
-      borderLeft: '4px solid',
-      backgroundColor: '#fff',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      animation: 'slideIn 0.3s ease-out'
-    };
-
+  const getNotificationClasses = (type) => {
+    const baseClasses = 'mb-3 rounded-lg border p-4 shadow-lg backdrop-blur-sm transition-all duration-300 animate-slide-in';
+    
     switch (type) {
       case 'success':
-        return { ...baseStyle, borderLeftColor: '#28a745', backgroundColor: '#d4edda' };
+        return `${baseClasses} border-success-200 bg-success-50 text-success-800`;
       case 'error':
-        return { ...baseStyle, borderLeftColor: '#dc3545', backgroundColor: '#f8d7da' };
+        return `${baseClasses} border-danger-200 bg-danger-50 text-danger-800`;
       case 'warning':
-        return { ...baseStyle, borderLeftColor: '#ffc107', backgroundColor: '#fff3cd' };
+        return `${baseClasses} border-warning-200 bg-warning-50 text-warning-800`;
       default:
-        return { ...baseStyle, borderLeftColor: '#17a2b8', backgroundColor: '#d1ecf1' };
+        return `${baseClasses} border-primary-200 bg-primary-50 text-primary-800`;
     }
   };
 
-  const getTextColor = (type) => {
+  const getIcon = (type) => {
+    const iconClasses = 'h-5 w-5 flex-shrink-0';
+    
     switch (type) {
-      case 'success': return '#155724';
-      case 'error': return '#721c24';
-      case 'warning': return '#856404';
-      default: return '#0c5460';
+      case 'success':
+        return <CheckCircle className={`${iconClasses} text-success-600`} />;
+      case 'error':
+        return <AlertCircle className={`${iconClasses} text-danger-600`} />;
+      case 'warning':
+        return <AlertTriangle className={`${iconClasses} text-warning-600`} />;
+      default:
+        return <Info className={`${iconClasses} text-primary-600`} />;
     }
   };
 
   if (notifications.length === 0) return null;
 
   return (
-    <>
-      <style>
-        {`
-          @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-          }
-        `}
-      </style>
-      <div style={{
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 1000,
-        maxWidth: '350px',
-        width: '100%'
-      }}>
-        {notifications.map(notification => (
-          <div
-            key={notification.id}
-            style={getNotificationStyle(notification.type)}
-            onClick={() => removeNotification(notification.id)}
-          >
-            <div style={{ 
-              color: getTextColor(notification.type),
-              fontWeight: '500'
-            }}>
-              {notification.message}
+    <div className="fixed top-4 right-4 z-50 w-full max-w-sm space-y-2">
+      {notifications.map(notification => (
+        <div
+          key={notification.id}
+          className={getNotificationClasses(notification.type)}
+        >
+          <div className="flex items-start">
+            <div className="flex">
+              {getIcon(notification.type)}
             </div>
-            <div style={{ 
-              fontSize: '0.8rem', 
-              opacity: 0.7,
-              marginTop: '4px'
-            }}>
-              {notification.timestamp.toLocaleTimeString()}
+            
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium">
+                {notification.message}
+              </p>
+              <p className="mt-1 text-xs opacity-75">
+                {notification.timestamp.toLocaleTimeString()}
+              </p>
             </div>
+            
+            <button
+              onClick={() => removeNotification(notification.id)}
+              className="ml-4 inline-flex flex-shrink-0 rounded-md p-1.5 transition-colors hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        ))}
-      </div>
-    </>
+        </div>
+      ))}
+    </div>
   );
 }

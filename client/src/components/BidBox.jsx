@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Gavel, TrendingUp, DollarSign, AlertCircle, Loader2, CheckCircle, Lock } from 'lucide-react';
 import api from '../api/axios';
 
 export default function BidBox({ auctionId, highest, increment, auction }) {
@@ -22,8 +23,12 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
 
   const getUserId = () => {
     let userId = localStorage.getItem('userId');
+    if (userId && !userId.includes('-')) {
+      localStorage.removeItem('userId');
+      userId = null;
+    }
     if (!userId) {
-      userId = `user_${Math.random().toString(36).substr(2, 9)}`;
+      userId = `temp_${Math.random().toString(36).substr(2, 9)}`;
       localStorage.setItem('userId', userId);
     }
     return userId;
@@ -65,6 +70,15 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
     setError('');
   };
 
+  const quickBidOptions = (minBid) => {
+    return [
+      minBid,
+      minBid + increment,
+      minBid + (increment * 2),
+      minBid + (increment * 5)
+    ];
+  };
+
   const currentHighest = highest?.amount || auction?.startingPrice || 0;
   const minimumBid = currentHighest + (increment || 1);
   const isValidBid = amount >= minimumBid;
@@ -74,126 +88,159 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
 
   if (!isActive) {
     return (
-      <div style={{
-        padding: '1rem',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        backgroundColor: '#f8f9fa',
-        textAlign: 'center'
-      }}>
-        <p style={{ color: '#6c757d', margin: 0 }}>
-          This auction is no longer active
-        </p>
+      <div className="card">
+        <div className="card-content text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-4">
+            <Lock className="h-6 w-6 text-slate-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            Auction Inactive
+          </h3>
+          <p className="text-slate-600">
+            This auction is no longer accepting bids
+          </p>
+        </div>
       </div>
     );
   }
 
   if (isOwnAuction) {
     return (
-      <div style={{
-        padding: '1rem',
-        border: '1px solid #ffc107',
-        borderRadius: '8px',
-        backgroundColor: '#fff3cd',
-        textAlign: 'center'
-      }}>
-        <p style={{ color: '#856404', margin: 0 }}>
-          You cannot bid on your own auction
-        </p>
+      <div className="rounded-lg border border-warning-200 bg-warning-50 p-4">
+        <div className="flex items-center">
+          <AlertCircle className="h-5 w-5 text-warning-600 mr-3" />
+          <div>
+            <h3 className="text-sm font-medium text-warning-800">
+              Cannot Bid on Own Auction
+            </h3>
+            <p className="text-sm text-warning-700">
+              You cannot place bids on your own auction
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{
-      padding: '1rem',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      backgroundColor: '#fff'
-    }}>
-      <h3 style={{ margin: '0 0 1rem 0' }}>Place Your Bid</h3>
-      
-      <div style={{ marginBottom: '1rem' }}>
-        <p style={{ margin: '0.5rem 0', color: '#666' }}>
-          Current Highest: <strong>{formatPrice(currentHighest)}</strong>
-        </p>
-        <p style={{ margin: '0.5rem 0', color: '#666' }}>
-          Minimum Bid: <strong>{formatPrice(minimumBid)}</strong>
-        </p>
-      </div>
+    <div className="card">
+      <div className="card-content">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100">
+            <Gavel className="h-5 w-5 text-primary-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900">
+            Place Your Bid
+          </h3>
+        </div>
+        
+        <div className="space-y-3 mb-6">
+          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+            <span className="text-sm text-slate-600">Current Highest</span>
+            <span className="font-semibold text-slate-900">{formatPrice(currentHighest)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center p-3 bg-primary-50 rounded-lg">
+            <span className="text-sm text-primary-700">Minimum Bid</span>
+            <span className="font-bold text-primary-900">{formatPrice(minimumBid)}</span>
+          </div>
+        </div>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ 
-          display: 'block', 
-          marginBottom: '0.5rem',
-          fontWeight: 'bold'
-        }}>
-          Your Bid Amount:
-        </label>
-        <input
-          type="number"
-          value={amount}
-          onChange={handleAmountChange}
-          min={minimumBid}
-          step={increment || 1}
-          style={{
-            width: '100%',
-            padding: '0.5rem',
-            border: `1px solid ${isValidBid ? '#ddd' : '#dc3545'}`,
-            borderRadius: '4px',
-            fontSize: '1rem'
-          }}
-        />
-        {!isValidBid && (
-          <small style={{ color: '#dc3545' }}>
-            Bid must be at least {formatPrice(minimumBid)}
-          </small>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Quick Bid Options
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {quickBidOptions(minimumBid).map((bidAmount, index) => (
+              <button
+                key={index}
+                onClick={() => setAmount(bidAmount)}
+                className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  amount === bidAmount
+                    ? 'border-primary-300 bg-primary-100 text-primary-700'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {formatPrice(bidAmount)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Custom Amount
+          </label>
+          <div className="relative">
+            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="number"
+              value={amount}
+              onChange={handleAmountChange}
+              min={minimumBid}
+              step={increment || 1}
+              className={`input pl-10 ${
+                !isValidBid ? 'border-danger-300 focus-visible:ring-danger-500' : ''
+              }`}
+              placeholder={`Min: ${formatPrice(minimumBid)}`}
+            />
+          </div>
+          {!isValidBid && (
+            <p className="mt-1 text-sm text-danger-600">
+              Bid must be at least {formatPrice(minimumBid)}
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={placeBid}
+          disabled={!isValidBid || isLoading}
+          className={`w-full flex items-center justify-center gap-2 ${
+            isValidBid && !isLoading 
+              ? 'btn btn-primary btn-lg' 
+              : 'btn btn-lg bg-slate-300 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Placing Bid...
+            </>
+          ) : (
+            <>
+              <TrendingUp className="h-5 w-5" />
+              Place Bid {formatPrice(amount)}
+            </>
+          )}
+        </button>
+
+        {error && (
+          <div className="mt-4 p-3 rounded-lg bg-danger-50 border border-danger-200">
+            <div className="flex items-center">
+              <AlertCircle className="h-4 w-4 text-danger-600 mr-2" />
+              <p className="text-sm text-danger-800">{error}</p>
+            </div>
+          </div>
         )}
+
+        {success && (
+          <div className="mt-4 p-3 rounded-lg bg-success-50 border border-success-200">
+            <div className="flex items-center">
+              <CheckCircle className="h-4 w-4 text-success-600 mr-2" />
+              <p className="text-sm text-success-800">{success}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 p-3 bg-slate-50 rounded-lg">
+          <h4 className="text-sm font-medium text-slate-900 mb-2">Bidding Guidelines</h4>
+          <ul className="text-xs text-slate-600 space-y-1">
+            <li>• Bids must be in increments of {formatPrice(increment)}</li>
+            <li>• All bids are final and cannot be retracted</li>
+            <li>• Highest bid when auction ends wins</li>
+          </ul>
+        </div>
       </div>
-
-      <button
-        onClick={placeBid}
-        disabled={!isValidBid || isLoading}
-        style={{
-          width: '100%',
-          padding: '0.75rem',
-          backgroundColor: isValidBid && !isLoading ? '#28a745' : '#6c757d',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          fontWeight: 'bold',
-          cursor: isValidBid && !isLoading ? 'pointer' : 'not-allowed'
-        }}
-      >
-        {isLoading ? 'Placing Bid...' : `Place Bid ${formatPrice(amount)}`}
-      </button>
-
-      {error && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.75rem',
-          backgroundColor: '#f8d7da',
-          color: '#721c24',
-          border: '1px solid #f5c6cb',
-          borderRadius: '4px'
-        }}>
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.75rem',
-          backgroundColor: '#d4edda',
-          color: '#155724',
-          border: '1px solid #c3e6cb',
-          borderRadius: '4px'
-        }}>
-          {success}
-        </div>
-      )}
     </div>
   );
 }
