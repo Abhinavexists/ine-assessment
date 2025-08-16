@@ -17,11 +17,38 @@ export default function AuctionDetail() {
 
   const getUserId = () => {
     let userId = localStorage.getItem('userId');
+    if (userId && !userId.includes('-')) {
+      localStorage.removeItem('userId');
+      userId = null;
+    }
     if (!userId) {
-      userId = `user_${Math.random().toString(36).substr(2, 9)}`;
+      userId = `temp_${Math.random().toString(36).substr(2, 9)}`;
       localStorage.setItem('userId', userId);
     }
     return userId;
+  };
+
+  const deleteBid = async (bidId) => {
+    if (!confirm('Are you sure you want to delete this bid?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/auctions/${id}/bid/${bidId}`, {
+        data: { userId: getUserId() }
+      });
+      
+      setBidHistory(prev => prev.filter(bid => bid.id !== bidId));
+      
+      if (window.addNotification) {
+        window.addNotification('Bid deleted successfully!', 'success');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 'Failed to delete bid';
+      if (window.addNotification) {
+        window.addNotification(errorMessage, 'error');
+      }
+    }
   };
 
   useEffect(() => {
@@ -384,28 +411,71 @@ export default function AuctionDetail() {
         }}>
           <h3 style={{ margin: '0 0 1rem 0' }}>Recent Bids</h3>
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-            {bidHistory.map((bid, index) => (
-              <div 
-                key={bid.id || index}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0.5rem 0',
-                  borderBottom: index < bidHistory.length - 1 ? '1px solid #eee' : 'none'
-                }}
-              >
-                <div>
-                  <strong>{formatPrice(bid.amount)}</strong>
-                  <span style={{ color: '#666', marginLeft: '0.5rem' }}>
-                    by {bid.bidderName}
-                  </span>
+            {bidHistory.map((bid, index) => {
+              const isMyBid = bid.bidderId === getUserId();
+              const isHighestBid = highest && bid.id === highest.bidId;
+              
+              return (
+                <div 
+                  key={bid.id || index}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.5rem 0',
+                    borderBottom: index < bidHistory.length - 1 ? '1px solid #eee' : 'none',
+                    backgroundColor: isMyBid ? '#f0f8ff' : 'transparent'
+                  }}
+                >
+                  <div>
+                    <strong>{formatPrice(bid.amount)}</strong>
+                    <span style={{ color: '#666', marginLeft: '0.5rem' }}>
+                      by {bid.bidderName}
+                      {isMyBid && (
+                        <span style={{ 
+                          color: '#007bff', 
+                          fontWeight: 'bold',
+                          marginLeft: '0.25rem' 
+                        }}>
+                          (You)
+                        </span>
+                      )}
+                      {isHighestBid && (
+                        <span style={{ 
+                          color: '#28a745', 
+                          fontWeight: 'bold',
+                          marginLeft: '0.25rem' 
+                        }}>
+                          (Highest)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: '#666', fontSize: '0.8rem' }}>
+                      {new Date(bid.createdAt).toLocaleTimeString()}
+                    </span>
+                    {isMyBid && !isHighestBid && auction?.status === 'live' && (
+                      <button
+                        onClick={() => deleteBid(bid.id)}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer'
+                        }}
+                        title="Delete your bid"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div style={{ color: '#666', fontSize: '0.8rem' }}>
-                  {new Date(bid.createdAt).toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

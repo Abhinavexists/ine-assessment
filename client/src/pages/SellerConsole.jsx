@@ -20,38 +20,73 @@ export default function SellerConsole() {
   const [loading, setLoading] = useState(false);
 
   const getUserId = () => {
+    return localStorage.getItem('userId');
+  };
+
+  const createUserIfNeeded = async () => {
     let userId = localStorage.getItem('userId');
-    if (!userId) {
-      userId = `seller_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('userId', userId);
+    
+    if (userId && !userId.includes('-')) {
+      localStorage.removeItem('userId');
+      userId = null;
     }
+    
+    if (!userId) {
+      try {
+        const response = await api.post('/users/guest', {
+          displayName: `Seller ${Math.random().toString(36).substr(2, 6)}`,
+          email: `seller_${Math.random().toString(36).substr(2, 6)}@example.com`
+        });
+        
+        userId = response.data.id;
+        localStorage.setItem('userId', userId);
+        console.log('Created new user:', userId);
+      } catch (error) {
+        console.error('Failed to create user:', error);
+        throw new Error('Failed to create user. Please try again.');
+      }
+    }
+    
     return userId;
   };
 
   useEffect(() => {
-    const userId = getUserId();
-    setForm(prev => ({ ...prev, sellerId: userId }));
-    
-    const now = dayjs();
-    const start = now.add(1, 'hour');
-    const end = start.add(24, 'hours');
-    
-    setForm(prev => ({
-      ...prev,
-      startAt: start.format('YYYY-MM-DDTHH:mm'),
-      endAt: end.format('YYYY-MM-DDTHH:mm')
-    }));
+    const initializeUser = async () => {
+      const userId = await createUserIfNeeded();
+      setForm(prev => ({ ...prev, sellerId: userId }));
+      
+      const now = dayjs();
+      const start = now.add(1, 'hour');
+      const end = start.add(24, 'hours');
+      
+      setForm(prev => ({
+        ...prev,
+        startAt: start.format('YYYY-MM-DDTHH:mm'),
+        endAt: end.format('YYYY-MM-DDTHH:mm')
+      }));
 
-    loadMyAuctions();
+      loadMyAuctions();
+    };
+
+    initializeUser();
   }, []);
 
   const loadMyAuctions = async () => {
     try {
       setLoading(true);
       const userId = getUserId();
+
+      const [liveResponse, scheduledResponse, endedResponse] = await Promise.all([
+        api.get('/auctions?status=live'),
+        api.get('/auctions?status=scheduled'),
+        api.get('/auctions?status=ended')
+      ]);
       
-      const response = await api.get('/auctions');
-      const allAuctions = response.data;
+      const allAuctions = [
+        ...(liveResponse.data.auctions || []),
+        ...(scheduledResponse.data.auctions || []),
+        ...(endedResponse.data.auctions || [])
+      ];
       const sellerAuctions = allAuctions.filter(a => a.sellerId === userId);
       
       setMyAuctions(sellerAuctions);
@@ -104,9 +139,9 @@ export default function SellerConsole() {
         bidIncrement: parseFloat(form.bidIncrement)
       };
 
-      const response = await api.post('/auctions', auctionData);
+      await api.post('/auctions', auctionData);
       
-      setCreateSuccess('Auction created successfully! 🎉');
+      setCreateSuccess('Auction created successfully!');
       
       const userId = getUserId();
       const now = dayjs();
@@ -137,7 +172,9 @@ export default function SellerConsole() {
 
   const handleAuctionAction = async (auctionId, action) => {
     try {
-      await api.post(`/auctions/${auctionId}/${action}`);
+      await api.post(`/auctions/${auctionId}/${action}`, {
+        sellerId: getUserId()
+      });
       
       if (window.addNotification) {
         window.addNotification(
@@ -149,6 +186,29 @@ export default function SellerConsole() {
       loadMyAuctions();
     } catch (err) {
       const errorMessage = err.response?.data?.error || `Failed to ${action} auction`;
+      if (window.addNotification) {
+        window.addNotification(errorMessage, 'error');
+      }
+    }
+  };
+
+  const deleteAuction = async (auctionId) => {
+    if (!confirm('Are you sure you want to delete this auction? This will permanently remove the auction and all its bids. This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/auctions/${auctionId}`, {
+        data: { sellerId: getUserId() }
+      });
+      
+      if (window.addNotification) {
+        window.addNotification('Auction deleted successfully!', 'success');
+      }
+
+      loadMyAuctions();
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 'Failed to delete auction';
       if (window.addNotification) {
         window.addNotification(errorMessage, 'error');
       }
@@ -185,7 +245,7 @@ export default function SellerConsole() {
         alignItems: 'center',
         marginBottom: '2rem'
       }}>
-        <h1 style={{ margin: 0 }}>🏛️ Seller Console</h1>
+        <h1 style={{ margin: 0 }}>Seller Console</h1>
         <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>
           ← Back to Home
         </Link>
@@ -453,6 +513,22 @@ export default function SellerConsole() {
                   >
                     View Details
                   </Link>
+
+                  <button
+                    onClick={() => deleteAuction(auction.id)}
+                    style={{
+                      padding: '0.25rem 0.75rem',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                    title="Delete this auction"
+                  >
+                    Delete
+                  </button>
 
                   {auction.status === 'ended' && (
                     <>
