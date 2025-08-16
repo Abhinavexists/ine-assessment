@@ -223,7 +223,7 @@ export default function Layout({ children }) {
                 <Gavel className="h-4 w-4" />
               </div>
               <span className="text-sm text-slate-600">
-                © 2024 AuctionHub. All rights reserved.
+                © 2025 AuctionHub. All rights reserved.
               </span>
             </div>
             

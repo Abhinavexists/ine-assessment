@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Gavel, TrendingUp, DollarSign, AlertCircle, Loader2, CheckCircle, Lock } from 'lucide-react';
+import { Gavel, TrendingUp, AlertCircle, Loader2, CheckCircle, Lock } from 'lucide-react';
 import api from '../api/axios';
 
 export default function BidBox({ auctionId, highest, increment, auction }) {
@@ -9,8 +9,9 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const currentHighest = highest?.amount || auction?.startingPrice || 0;
-    const minimumBid = currentHighest + (increment || 1);
+    const currentHighest = Number(highest?.amount) || Number(auction?.startingPrice) || 0;
+    const incrementValue = Number(increment) || 1;
+    const minimumBid = currentHighest + incrementValue;
     setAmount(minimumBid);
   }, [highest, increment, auction]);
 
@@ -49,7 +50,8 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
 
       setSuccess('Bid placed successfully! 🎉');
       
-      const newMinimum = amount + (increment || 1);
+      const incrementValue = Number(increment) || 1;
+      const newMinimum = amount + incrementValue;
       setAmount(newMinimum);
 
       setTimeout(() => setSuccess(''), 3000);
@@ -71,16 +73,18 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
   };
 
   const quickBidOptions = (minBid) => {
+    const incrementValue = Number(increment) || 1;
     return [
       minBid,
-      minBid + increment,
-      minBid + (increment * 2),
-      minBid + (increment * 5)
+      minBid + incrementValue,
+      minBid + (incrementValue * 2),
+      minBid + (incrementValue * 5)
     ];
   };
 
-  const currentHighest = highest?.amount || auction?.startingPrice || 0;
-  const minimumBid = currentHighest + (increment || 1);
+  const currentHighest = Number(highest?.amount) || Number(auction?.startingPrice) || 0;
+  const incrementValue = Number(increment) || 1;
+  const minimumBid = currentHighest + incrementValue;
   const isValidBid = amount >= minimumBid;
 
   const isActive = auction?.status === 'live';
@@ -172,13 +176,13 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
             Custom Amount
           </label>
           <div className="relative">
-            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 font-bold text-lg">₹</span>
             <input
               type="number"
               value={amount}
               onChange={handleAmountChange}
               min={minimumBid}
-              step={increment || 1}
+              step={Number(increment) || 1}
               className={`input pl-10 ${
                 !isValidBid ? 'border-danger-300 focus-visible:ring-danger-500' : ''
               }`}
@@ -235,7 +239,7 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
         <div className="mt-6 p-3 bg-slate-50 rounded-lg">
           <h4 className="text-sm font-medium text-slate-900 mb-2">Bidding Guidelines</h4>
           <ul className="text-xs text-slate-600 space-y-1">
-            <li>• Bids must be in increments of {formatPrice(increment)}</li>
+            <li>• Bids must be in increments of {formatPrice(Number(increment) || 1)}</li>
             <li>• All bids are final and cannot be retracted</li>
             <li>• Highest bid when auction ends wins</li>
           </ul>

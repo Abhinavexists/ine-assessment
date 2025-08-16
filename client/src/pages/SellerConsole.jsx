@@ -18,6 +18,8 @@ export default function SellerConsole() {
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [counterOfferAmount, setCounterOfferAmount] = useState('');
+  const [showCounterOfferFor, setShowCounterOfferFor] = useState(null);
 
   const getUserId = () => {
     return localStorage.getItem('userId');
@@ -215,6 +217,45 @@ export default function SellerConsole() {
     }
   };
 
+  const makeCounterOffer = async (auctionId) => {
+    if (!counterOfferAmount || parseFloat(counterOfferAmount) <= 0) {
+      if (window.addNotification) {
+        window.addNotification('Please enter a valid counter offer amount', 'error');
+      }
+      return;
+    }
+
+    try {
+      await api.post(`/auctions/${auctionId}/counter-offer`, {
+        sellerId: getUserId(),
+        counterOfferAmount: parseFloat(counterOfferAmount)
+      });
+      
+      if (window.addNotification) {
+        window.addNotification('Counter offer sent successfully!', 'success');
+      }
+      
+      setShowCounterOfferFor(null);
+      setCounterOfferAmount('');
+      loadMyAuctions();
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 'Failed to send counter offer';
+      if (window.addNotification) {
+        window.addNotification(errorMessage, 'error');
+      }
+    }
+  };
+
+  const showCounterOfferForm = (auctionId) => {
+    setShowCounterOfferFor(auctionId);
+    setCounterOfferAmount('');
+  };
+
+  const cancelCounterOffer = () => {
+    setShowCounterOfferFor(null);
+    setCounterOfferAmount('');
+  };
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -228,6 +269,7 @@ export default function SellerConsole() {
       case 'ended': return '#dc3545';
       case 'closed': return '#6f42c1';
       case 'scheduled': return '#6c757d';
+      case 'counter-offer': return '#ffc107';
       default: return '#6c757d';
     }
   };
@@ -547,6 +589,20 @@ export default function SellerConsole() {
                         Accept Bid
                       </button>
                       <button
+                        onClick={() => showCounterOfferForm(auction.id)}
+                        style={{
+                          padding: '0.25rem 0.75rem',
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Counter Offer
+                      </button>
+                      <button
                         onClick={() => handleAuctionAction(auction.id, 'reject')}
                         style={{
                           padding: '0.25rem 0.75rem',
@@ -561,6 +617,77 @@ export default function SellerConsole() {
                         Reject All
                       </button>
                     </>
+                  )}
+
+                  {auction.status === 'counter-offer' && (
+                    <div style={{
+                      padding: '0.5rem',
+                      backgroundColor: '#fff3cd',
+                      borderRadius: '4px',
+                      border: '1px solid #ffc107',
+                      fontSize: '0.8rem',
+                      color: '#856404'
+                    }}>
+                      ⏰ Counter offer pending buyer response
+                    </div>
+                  )}
+
+                  {/* Counter Offer Form */}
+                  {showCounterOfferFor === auction.id && (
+                    <div style={{
+                      marginTop: '0.5rem',
+                      padding: '1rem',
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: '4px',
+                      border: '1px solid #dee2e6'
+                    }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
+                        Make Counter Offer
+                      </h4>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          value={counterOfferAmount}
+                          onChange={(e) => setCounterOfferAmount(e.target.value)}
+                          placeholder="Enter counter offer amount"
+                          style={{
+                            flex: 1,
+                            padding: '0.25rem 0.5rem',
+                            border: '1px solid #ddd',
+                            borderRadius: '3px',
+                            fontSize: '0.8rem'
+                          }}
+                        />
+                        <button
+                          onClick={() => makeCounterOffer(auction.id)}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Send
+                        </button>
+                        <button
+                          onClick={cancelCounterOffer}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: '#6c757d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

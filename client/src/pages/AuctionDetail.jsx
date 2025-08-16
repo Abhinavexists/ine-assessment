@@ -14,6 +14,7 @@ export default function AuctionDetail() {
   const [error, setError] = useState('');
   const [viewerCount, setViewerCount] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [counterOffer, setCounterOffer] = useState(null);
 
   const getUserId = () => {
     let userId = localStorage.getItem('userId');
@@ -51,8 +52,46 @@ export default function AuctionDetail() {
     }
   };
 
+  const loadCounterOffer = async () => {
+    try {
+      const response = await api.get(`/auctions/${id}/counter-offer`);
+      setCounterOffer(response.data.counterOffer);
+    } catch (error) {
+      setCounterOffer(null);
+    }
+  };
+
+  const respondToCounterOffer = async (action) => {
+    const actionText = action === 'accept' ? 'accept' : 'reject';
+    if (!confirm(`Are you sure you want to ${actionText} this counter offer?`)) {
+      return;
+    }
+
+    try {
+      await api.post(`/auctions/${id}/counter-offer/${action}`, {
+        buyerId: getUserId()
+      });
+      
+      if (window.addNotification) {
+        window.addNotification(
+          `Counter offer ${action}ed successfully!`, 
+          action === 'accept' ? 'success' : 'info'
+        );
+      }
+      
+      loadAuctionData();
+      loadCounterOffer();
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || `Failed to ${actionText} counter offer`;
+      if (window.addNotification) {
+        window.addNotification(errorMessage, 'error');
+      }
+    }
+  };
+
   useEffect(() => {
     loadAuctionData();
+    loadCounterOffer();
   }, [id]);
 
   useEffect(() => {
@@ -168,6 +207,89 @@ export default function AuctionDetail() {
       setConnectionStatus('connected');
     });
 
+    socket.on('counter-offer:made', (data) => {
+      setAuction(prev => ({ ...prev, status: 'counter-offer' }));
+      loadCounterOffer(); 
+      
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'info'
+        );
+      }
+    });
+
+    socket.on('counter-offer:received', (data) => {
+      loadCounterOffer(); 
+      
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'warning'
+        );
+      }
+    });
+
+    socket.on('counter-offer:accepted', (data) => {
+      setAuction(prev => ({ ...prev, status: 'closed' }));
+      setCounterOffer(null); 
+      
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'success'
+        );
+      }
+    });
+
+    socket.on('counter-offer:rejected', (data) => {
+      setAuction(prev => ({ ...prev, status: 'ended' }));
+      setCounterOffer(null); 
+      
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'info'
+        );
+      }
+    });
+
+    socket.on('counter-offer:success', (data) => {
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'success'
+        );
+      }
+    });
+
+    socket.on('counter-offer:buyer-accepted', (data) => {
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'success'
+        );
+      }
+    });
+
+    socket.on('counter-offer:rejected-confirmed', (data) => {
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'info'
+        );
+      }
+    });
+
+    socket.on('counter-offer:buyer-rejected', (data) => {
+      if (window.addNotification) {
+        window.addNotification(
+          data.message,
+          'error'
+        );
+      }
+    });
+
     return () => {
       socket.emit('leaveAuction', { auctionId: id });
       socket.off('auction:status');
@@ -182,6 +304,14 @@ export default function AuctionDetail() {
       socket.off('viewer:left');
       socket.off('disconnect');
       socket.off('connect');
+      socket.off('counter-offer:made');
+      socket.off('counter-offer:received');
+      socket.off('counter-offer:accepted');
+      socket.off('counter-offer:rejected');
+      socket.off('counter-offer:success');
+      socket.off('counter-offer:buyer-accepted');
+      socket.off('counter-offer:rejected-confirmed');
+      socket.off('counter-offer:buyer-rejected');
     };
   }, [id, auction]);
 
@@ -214,6 +344,7 @@ export default function AuctionDetail() {
       case 'ended': return '#dc3545';
       case 'closed': return '#6f42c1';
       case 'scheduled': return '#6c757d';
+      case 'counter-offer': return '#ffc107';
       default: return '#6c757d';
     }
   };
@@ -401,6 +532,116 @@ export default function AuctionDetail() {
           auction={auction}
         />
       </div>
+
+      {counterOffer && counterOffer.buyerId === getUserId() && counterOffer.status === 'pending' && (
+        <div style={{
+          backgroundColor: '#fff3cd',
+          border: '2px solid #ffc107',
+          borderRadius: '8px',
+          padding: '1.5rem',
+          marginBottom: '1.5rem'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 1rem 0', 
+            color: '#856404',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            Counter Offer Received!
+          </h3>
+          
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1rem',
+            borderRadius: '6px',
+            marginBottom: '1rem'
+          }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Your Original Bid:</strong> ₹{counterOffer.originalBid?.toLocaleString('en-IN')}
+            </div>
+            <div style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>
+              <strong>Seller's Counter Offer:</strong> 
+              <span style={{ color: '#007bff', fontWeight: 'bold', marginLeft: '0.5rem' }}>
+                ₹{counterOffer.counterOfferAmount?.toLocaleString('en-IN')}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.9rem', color: '#666' }}>
+              <strong>Expires:</strong> {new Date(counterOffer.expiresAt).toLocaleString()}
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: '#fff3cd',
+            padding: '0.75rem',
+            borderRadius: '4px',
+            marginBottom: '1rem',
+            fontSize: '0.9rem',
+            color: '#856404'
+          }}>
+            The seller has proposed a different price. You can accept or reject this counter offer.
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => respondToCounterOffer('accept')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#218838'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
+            >
+              Accept Counter Offer
+            </button>
+            <button
+              onClick={() => respondToCounterOffer('reject')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#c82333'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#dc3545'}
+            >
+              Reject Counter Offer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {counterOffer && counterOffer.buyerId !== getUserId() && auction?.status === 'counter-offer' && (
+        <div style={{
+          backgroundColor: '#e3f2fd',
+          border: '1px solid #2196f3',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          textAlign: 'center'
+        }}>
+          <div style={{ color: '#1976d2', fontWeight: 'bold' }}>
+            Counter offer pending buyer response
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#1565c0', marginTop: '0.5rem' }}>
+            Seller proposed: ₹{counterOffer.counterOfferAmount?.toLocaleString('en-IN')}
+          </div>
+        </div>
+      )}
 
       {bidHistory.length > 0 && (
         <div style={{
