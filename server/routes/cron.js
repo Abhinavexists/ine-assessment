@@ -27,8 +27,6 @@ router.post('/tick', async (_req, res) => {
         
         console.log(`Started auction ${auction.id}: ${auction.title}`);
         
-        console.log(`Auction started: ${auction.title} (${auction.id})`);
-        
       } catch (error) {
         console.error(`Error starting auction ${auction.id}:`, error);
       }
@@ -48,8 +46,6 @@ router.post('/tick', async (_req, res) => {
         endedCount++;
         
         console.log(`Ended auction ${auction.id}: ${auction.title}`);
-        
-        console.log(`Auction ended: ${auction.title} (${auction.id})`);
         
       } catch (error) {
         console.error(`Error ending auction ${auction.id}:`, error);

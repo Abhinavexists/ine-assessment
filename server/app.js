@@ -10,7 +10,6 @@ const sequelize = require('./db');
 
 const userRoutes = require('./routes/users');
 const auctionRoutes = require('./routes/auctions');
-const { router: notificationRoutes } = require('./routes/notifications');
 const cronRoutes = require('./routes/cron');
 
 const app = express();
@@ -30,7 +29,7 @@ app.set('io', io);
 
 app.use('/api/users', userRoutes);
 app.use('/api/auctions', auctionRoutes);
-app.use('/api/notifications', notificationRoutes);
+// app.use('/api/notifications', notificationRoutes); // Removed unused route
 app.use('/api/cron', cronRoutes);
 
 const publicPath = path.join(__dirname, 'public');
