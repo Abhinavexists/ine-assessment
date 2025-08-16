@@ -13,7 +13,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auction/:id" element={<AuctionDetail />} />
-          <Route path="/sell" element={<SellerConsole />} />
+          <Route path="/seller" element={<SellerConsole />} />
           
           <Route path="*" element={
             <div className="container py-16">

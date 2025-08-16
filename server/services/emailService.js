@@ -8,11 +8,23 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 async function sendEmail(to, subject, text, html = null, attachments = []) {
+  // Security: Validate email address format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(to)) {
+    throw new Error(`Invalid email address format: ${to}`);
+  }
+  
+  // Security: Sanitize email content
+  const sanitizedSubject = subject.substring(0, 200); // Limit subject length
+  const sanitizedText = text.substring(0, 10000); // Limit text length
+  
+  console.log(`📧 Attempting to send email to: ${to.substring(0, 3)}***@${to.split('@')[1]}`);
+  
   if (!process.env.SENDGRID_API_KEY) {
     console.log('📧 [EMAIL SIMULATION]');
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Text: ${text}`);
+    console.log(`To: ${to.substring(0, 3)}***@${to.split('@')[1]}`);
+    console.log(`Subject: ${sanitizedSubject}`);
+    console.log(`Text: ${sanitizedText.substring(0, 100)}...`);
     if (attachments.length > 0) {
       console.log(`Attachments: ${attachments.map(a => a.filename).join(', ')}`);
     }
@@ -24,9 +36,9 @@ async function sendEmail(to, subject, text, html = null, attachments = []) {
     const msg = {
       to,
       from: process.env.SENDGRID_FROM || 'no-reply@auctionapp.com',
-      subject,
-      text,
-      html: html || text,
+      subject: sanitizedSubject,
+      text: sanitizedText,
+      html: html || sanitizedText,
       attachments
     };
 

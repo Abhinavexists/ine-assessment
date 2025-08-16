@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import dayjs from 'dayjs';
+import RequireAuth from '../components/RequireAuth';
 
 export default function SellerConsole() {
   const [form, setForm] = useState({
@@ -21,9 +22,7 @@ export default function SellerConsole() {
   const [counterOfferAmount, setCounterOfferAmount] = useState('');
   const [showCounterOfferFor, setShowCounterOfferFor] = useState(null);
 
-  const getUserId = () => {
-    return localStorage.getItem('userId');
-  };
+  const getUserId = () => localStorage.getItem('userId');
 
   const createUserIfNeeded = async () => {
     let userId = localStorage.getItem('userId');
@@ -42,6 +41,9 @@ export default function SellerConsole() {
         
         userId = response.data.id;
         localStorage.setItem('userId', userId);
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+        }
         console.log('Created new user:', userId);
       } catch (error) {
         console.error('Failed to create user:', error);
@@ -275,23 +277,49 @@ export default function SellerConsole() {
   };
 
   return (
-    <div style={{ 
-      maxWidth: '1000px', 
-      margin: '0 auto', 
-      padding: '2rem',
-      fontFamily: 'Arial, sans-serif'
-    }}>
+    <RequireAuth fallback={
       <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '2rem'
+        maxWidth: '600px', 
+        margin: '2rem auto', 
+        padding: '2rem',
+        textAlign: 'center',
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '8px'
       }}>
-        <h1 style={{ margin: 0 }}>Seller Console</h1>
-        <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>
+        <h1 style={{ color: '#495057', marginBottom: '1rem' }}>Seller Console</h1>
+        <p style={{ color: '#6c757d', marginBottom: '2rem' }}>
+          Please sign in to create and manage your auctions
+        </p>
+        <Link to="/" style={{ 
+          color: '#007bff', 
+          textDecoration: 'none',
+          padding: '0.5rem 1rem',
+          border: '1px solid #007bff',
+          borderRadius: '4px',
+          display: 'inline-block'
+        }}>
           ← Back to Home
         </Link>
       </div>
+    }>
+      <div style={{ 
+        maxWidth: '1000px', 
+        margin: '0 auto', 
+        padding: '2rem',
+        fontFamily: 'Arial, sans-serif'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '2rem'
+        }}>
+          <h1 style={{ margin: 0 }}>Seller Console</h1>
+          <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>
+            ← Back to Home
+          </Link>
+        </div>
 
       <div style={{
         backgroundColor: '#fff',
@@ -696,5 +724,6 @@ export default function SellerConsole() {
         )}
       </div>
     </div>
+    </RequireAuth>
   );
 }

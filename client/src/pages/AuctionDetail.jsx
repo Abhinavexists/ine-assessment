@@ -35,9 +35,7 @@ export default function AuctionDetail() {
     }
 
     try {
-      await api.delete(`/auctions/${id}/bid/${bidId}`, {
-        data: { userId: getUserId() }
-      });
+      await api.delete(`/auctions/${id}/bid/${bidId}`);
       
       setBidHistory(prev => prev.filter(bid => bid.id !== bidId));
       
@@ -68,9 +66,7 @@ export default function AuctionDetail() {
     }
 
     try {
-      await api.post(`/auctions/${id}/counter-offer/${action}`, {
-        buyerId: getUserId()
-      });
+      await api.post(`/auctions/${id}/counter-offer/${action}`);
       
       if (window.addNotification) {
         window.addNotification(

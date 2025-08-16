@@ -7,6 +7,7 @@ const { sendBidAcceptedEmail, sendBidAcceptedSellerEmail, sendBidRejectedEmail, 
 const { generateInvoice } = require('../services/invoiceService');
 const redis = require('../redis');
 const router = express.Router();
+const { authenticateUser } = require('../middleware/auth');
 
 router.get('/', async (req, res) => {
   try {
@@ -142,10 +143,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/bid', async (req, res) => {
+router.post('/:id/bid', authenticateUser, async (req, res) => {
   try {
     const { id: auctionId } = req.params;
-    const { userId, amount } = req.body;
+    const { amount } = req.body;
+    const userId = req.user.id;
     
     if (!userId || !amount) {
       return res.status(400).json({ 
@@ -219,14 +221,10 @@ router.post('/:id/bid', async (req, res) => {
   }
 });
 
-router.delete('/:auctionId/bid/:bidId', async (req, res) => {
+router.delete('/:auctionId/bid/:bidId', authenticateUser, async (req, res) => {
   try {
     const { auctionId, bidId } = req.params;
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.user.id;
     
     const bid = await Bid.findByPk(bidId, {
       include: [{ model: Auction, as: 'auction' }]
@@ -261,14 +259,12 @@ router.delete('/:auctionId/bid/:bidId', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateUser, async (req, res) => {
   try {
     const { id: auctionId } = req.params;
-    const { sellerId } = req.body;
+    const sellerId = req.user.id;
     
-    if (!sellerId) {
-      return res.status(400).json({ error: 'sellerId is required' });
-    }
+    if (!sellerId) return res.status(401).json({ error: 'Unauthorized' });
     
     const auction = await Auction.findByPk(auctionId);
     if (!auction) {
@@ -305,10 +301,9 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authenticateUser, async (req, res) => {
   try {
     const { 
-      sellerId, 
       title, 
       description, 
       startingPrice, 
@@ -316,6 +311,7 @@ router.post('/', async (req, res) => {
       startAt, 
       endAt 
     } = req.body;
+    const sellerId = req.user.id;
     
     if (!sellerId || !title || !startingPrice || !bidIncrement || !startAt || !endAt) {
       return res.status(400).json({ 
@@ -376,14 +372,12 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.post('/:id/accept', async (req, res) => {
+router.post('/:id/accept', authenticateUser, async (req, res) => {
   try {
     const { id: auctionId } = req.params;
-    const { sellerId } = req.body;
+    const sellerId = req.user.id;
     
-    if (!sellerId) {
-      return res.status(400).json({ error: 'sellerId is required' });
-    }
+    if (!sellerId) return res.status(401).json({ error: 'Unauthorized' });
     
     const auction = await Auction.findByPk(auctionId);
     if (!auction) {
@@ -487,14 +481,12 @@ router.post('/:id/accept', async (req, res) => {
   }
 });
 
-router.post('/:id/reject', async (req, res) => {
+router.post('/:id/reject', authenticateUser, async (req, res) => {
   try {
     const { id: auctionId } = req.params;
-    const { sellerId } = req.body;
+    const sellerId = req.user.id;
     
-    if (!sellerId) {
-      return res.status(400).json({ error: 'sellerId is required' });
-    }
+    if (!sellerId) return res.status(401).json({ error: 'Unauthorized' });
     
     const auction = await Auction.findByPk(auctionId);
     if (!auction) {
@@ -560,10 +552,11 @@ router.post('/:id/reject', async (req, res) => {
   }
 });
 
-router.post('/:id/counter-offer', async (req, res) => {
+router.post('/:id/counter-offer', authenticateUser, async (req, res) => {
   try {
     const { id: auctionId } = req.params;
-    const { sellerId, counterOfferAmount } = req.body;
+    const { counterOfferAmount } = req.body;
+    const sellerId = req.user.id;
     
     if (!sellerId || !counterOfferAmount) {
       return res.status(400).json({ 
@@ -680,13 +673,13 @@ router.post('/:id/counter-offer', async (req, res) => {
   }
 });
 
-router.post('/:id/counter-offer/accept', async (req, res) => {
+router.post('/:id/counter-offer/accept', authenticateUser, async (req, res) => {
   try {
     const { id: auctionId } = req.params;
-    const { buyerId } = req.body;
+    const buyerId = req.user.id;
     
     if (!buyerId) {
-      return res.status(400).json({ error: 'buyerId is required' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     
     const counterOfferRaw = await redis.get(`counter-offer:${auctionId}`);
@@ -810,13 +803,13 @@ router.post('/:id/counter-offer/accept', async (req, res) => {
   }
 });
 
-router.post('/:id/counter-offer/reject', async (req, res) => {
+router.post('/:id/counter-offer/reject', authenticateUser, async (req, res) => {
   try {
     const { id: auctionId } = req.params;
-    const { buyerId } = req.body;
+    const buyerId = req.user.id;
     
     if (!buyerId) {
-      return res.status(400).json({ error: 'buyerId is required' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     
     const counterOfferRaw = await redis.get(`counter-offer:${auctionId}`);

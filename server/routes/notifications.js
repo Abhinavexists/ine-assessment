@@ -1,21 +1,13 @@
 const express = require('express');
 const { User } = require('../models');
+const { authenticateUser } = require('../middleware/auth');
 const router = express.Router();
 
 const notifications = new Map();
 
-router.get('/', async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
-    
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const userId = req.user.id;
     
     const userNotifications = notifications.get(userId) || [];
     
@@ -37,14 +29,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/:id/read', async (req, res) => {
+router.post('/:id/read', authenticateUser, async (req, res) => {
   try {
     const { id: notificationId } = req.params;
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.user.id;
     
     const userNotifications = notifications.get(userId) || [];
     const notification = userNotifications.find(n => n.id === notificationId);

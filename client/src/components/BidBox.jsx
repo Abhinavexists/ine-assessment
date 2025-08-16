@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Gavel, TrendingUp, AlertCircle, Loader2, CheckCircle, Lock } from 'lucide-react';
 import api from '../api/axios';
+import RequireAuth from './RequireAuth';
 
 export default function BidBox({ auctionId, highest, increment, auction }) {
   const [amount, setAmount] = useState(0);
@@ -44,7 +45,6 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
 
     try {
       const response = await api.post(`/auctions/${auctionId}/bid`, {
-        userId: getUserId(),
         amount: amount
       });
 
@@ -137,6 +137,8 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
             Place Your Bid
           </h3>
         </div>
+
+        <RequireAuth>
         
         <div className="space-y-3 mb-6">
           <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
@@ -244,6 +246,7 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
             <li>• Highest bid when auction ends wins</li>
           </ul>
         </div>
+        </RequireAuth>
       </div>
     </div>
   );
