@@ -15,8 +15,8 @@ RUN cd server && npm ci --omit=dev --silent --ignore-scripts --prefer-offline
 COPY --chown=app:app client/ ./client/
 COPY --chown=app:app server/ ./server/
 
-ENV VITE_API_URL=${VITE_API_URL}
-ENV VITE_API_WS=${VITE_API_WS}
+ENV VITE_API_URL=${VITE_API_URL:-https://ine-auction.onrender.com/api}
+ENV VITE_API_WS=${VITE_API_WS:-https://ine-auction.onrender.com}
 
 RUN cd client && npm run build
 
