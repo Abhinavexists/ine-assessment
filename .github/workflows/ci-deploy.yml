@@ -1,0 +1,50 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install server deps
+        working-directory: server
+        run: npm ci
+
+      - name: Install client deps
+        working-directory: client
+        run: npm ci
+
+      - name: Build client
+        working-directory: client
+        env:
+          VITE_API_URL: https://your-app-name.onrender.com/api
+          VITE_API_WS: https://your-app-name.onrender.com
+        run: npm run build
+
+  deploy:
+    name: Deploy to Render
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+    if: ${{ github.ref == 'refs/heads/main' && env.RENDER_DEPLOY_HOOK != '' }}
+    steps:
+      - name: Trigger Render Deploy Hook
+        run: curl -X POST "$RENDER_DEPLOY_HOOK"
