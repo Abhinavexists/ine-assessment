@@ -1,9 +1,8 @@
 FROM node:22.17.1-alpine3.21
 RUN addgroup -S app && adduser -S app -G app -s /bin/false -D
 
-# Build arguments for Vite environment variables
-ARG VITE_API_URL=https://ine-auction.onrender.com/api
-ARG VITE_API_WS=https://ine-auction.onrender.com
+ARG VITE_API_URL
+ARG VITE_API_WS
 
 WORKDIR /app
 
@@ -16,9 +15,9 @@ RUN cd server && npm ci --omit=dev --silent --ignore-scripts --prefer-offline
 COPY --chown=app:app client/ ./client/
 COPY --chown=app:app server/ ./server/
 
-# Pass build args as environment variables during build
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_API_WS=$VITE_API_WS
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_API_WS=${VITE_API_WS}
+
 RUN cd client && npm run build
 
 RUN mv client/dist server/public
