@@ -1,7 +1,6 @@
 const express = require('express');
 const { Auction } = require('../models');
 const { initializeAuction, endAuction } = require('../services/bidServices');
-const { broadcastGlobal } = require('../utils/broadcast');
 const { Op } = require('sequelize');
 const router = express.Router();
 
@@ -28,12 +27,7 @@ router.post('/tick', async (_req, res) => {
         
         console.log(`Started auction ${auction.id}: ${auction.title}`);
         
-        broadcastGlobal('auction:system:started', {
-          auctionId: auction.id,
-          title: auction.title,
-          startingPrice: auction.startingPrice,
-          endAt: auction.endAt
-        });
+        console.log(`Auction started: ${auction.title} (${auction.id})`);
         
       } catch (error) {
         console.error(`Error starting auction ${auction.id}:`, error);
@@ -55,11 +49,7 @@ router.post('/tick', async (_req, res) => {
         
         console.log(`Ended auction ${auction.id}: ${auction.title}`);
         
-        broadcastGlobal('auction:system:ended', {
-          auctionId: auction.id,
-          title: auction.title,
-          reason: 'Time expired'
-        });
+        console.log(`Auction ended: ${auction.title} (${auction.id})`);
         
       } catch (error) {
         console.error(`Error ending auction ${auction.id}:`, error);

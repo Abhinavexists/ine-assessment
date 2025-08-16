@@ -1,9 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-/**
- * Simple JWT Authentication middleware
- */
 async function authenticateUser(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
@@ -19,7 +16,6 @@ async function authenticateUser(req, res, next) {
       const decoded = jwt.verify(token, jwtSecret);
       const userId = decoded.userId;
       
-      // Verify user exists
       const user = await User.findByPk(userId);
       if (!user) {
         return res.status(401).json({ error: 'User not found' });
