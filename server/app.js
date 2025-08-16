@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 
@@ -9,7 +10,7 @@ const sequelize = require('./db');
 
 const userRoutes = require('./routes/users');
 const auctionRoutes = require('./routes/auctions');
-const notificationRoutes = require('./routes/notifications');
+const { router: notificationRoutes } = require('./routes/notifications');
 const cronRoutes = require('./routes/cron');
 
 const app = express();
@@ -32,8 +33,15 @@ app.use('/api/auctions', auctionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/cron', cronRoutes);
 
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 app.use((err, req, res, next) => {

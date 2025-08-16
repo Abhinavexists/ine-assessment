@@ -36,6 +36,7 @@ router.get('/', async (req, res) => {
           status: 'ended'
         };
         break;
+
       default:
         whereClause = { status };
     }
@@ -215,6 +216,92 @@ router.post('/:id/bid', async (req, res) => {
     }
     
     res.status(500).json({ error: 'Failed to place bid' });
+  }
+});
+
+router.delete('/:auctionId/bid/:bidId', async (req, res) => {
+  try {
+    const { auctionId, bidId } = req.params;
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    
+    const bid = await Bid.findByPk(bidId, {
+      include: [{ model: Auction, as: 'auction' }]
+    });
+    
+    if (!bid) {
+      return res.status(404).json({ error: 'Bid not found' });
+    }
+    
+    if (bid.bidderId !== userId) {
+      return res.status(403).json({ error: 'Can only delete your own bids' });
+    }
+    
+    if (bid.auction.status !== 'live') {
+      return res.status(400).json({ error: 'Can only delete bids from live auctions' });
+    }
+    
+    const highestBidRaw = await redis.get(`auction:${auctionId}:highest`);
+    if (highestBidRaw && highestBidRaw.bidId === bidId) {
+      return res.status(400).json({ 
+        error: 'Cannot delete the current highest bid' 
+      });
+    }
+    
+    await bid.destroy();
+    
+    res.json({ message: 'Bid deleted successfully' });
+    
+  } catch (error) {
+    console.error('Error deleting bid:', error);
+    res.status(500).json({ error: 'Failed to delete bid' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id: auctionId } = req.params;
+    const { sellerId } = req.body;
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'sellerId is required' });
+    }
+    
+    const auction = await Auction.findByPk(auctionId);
+    if (!auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+    
+    if (auction.sellerId !== sellerId) {
+      return res.status(403).json({ 
+        error: 'Only the auction owner can delete this auction' 
+      });
+    }
+    
+
+    if (auction.status === 'live') {
+      try {
+        await redis.del(`auction:${auctionId}:highest`);
+        await redis.del(`auction:${auctionId}:status`);
+      } catch (error) {
+        console.error('Error cleaning up Redis data:', error);
+      }
+    }
+    
+    await Bid.destroy({
+      where: { auctionId: auctionId }
+    });
+    
+    await auction.destroy();
+    
+    res.json({ message: 'Auction deleted successfully' });
+    
+  } catch (error) {
+    console.error('Error deleting auction:', error);
+    res.status(500).json({ error: 'Failed to delete auction' });
   }
 });
 

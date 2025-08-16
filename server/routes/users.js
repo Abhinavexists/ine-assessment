@@ -21,8 +21,7 @@ router.post('/guest', async (req, res) => {
     
     const user = await User.create({
       displayName,
-      email,
-      userType: 'guest'
+      email
     });
     
     res.status(201).json({
@@ -42,7 +41,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     
     const user = await User.findByPk(id, {
-      attributes: ['id', 'displayName', 'email', 'userType', 'createdAt']
+      attributes: ['id', 'displayName', 'email', 'createdAt']
     });
     
     if (!user) {

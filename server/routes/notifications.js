@@ -87,6 +87,7 @@ function addNotification(userId, notification) {
   }
 }
 
-router.addNotification = addNotification;
-
-module.exports = router;
+module.exports = {
+  router,
+  addNotification
+};
