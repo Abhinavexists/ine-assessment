@@ -172,9 +172,93 @@ The Auction Team
   return await sendEmail(buyer.email, subject, text, html);
 }
 
+async function sendCounterOfferEmail(buyer, auction, originalBid, counterOfferAmount) {
+  const subject = `Counter offer received for "${auction.title}"`;
+  
+  const text = `
+  You've received a counter offer!
+
+  Auction: ${auction.title}
+  Your original bid: ₹${originalBid}
+  Seller's counter offer: ₹${counterOfferAmount}
+  Seller: ${auction.seller?.displayName || 'Auction Seller'}
+
+  The seller has proposed a different price for this item. You have 24 hours to accept or reject this counter offer.
+
+  To respond to this counter offer, please visit the auction page and make your decision.
+
+  Best regards,
+  The Auction Team
+    `.trim();
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #007bff;">Counter Offer Received!</h1>
+        <p>The seller has made a <strong>counter offer</strong> for your bid!</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Offer Details</h3>
+          <p><strong>Item:</strong> ${auction.title}</p>
+          <p><strong>Your original bid:</strong> ₹${originalBid.toLocaleString('en-IN')}</p>
+          <p><strong>Seller's counter offer:</strong> <span style="color: #007bff; font-size: 1.2em;">₹${counterOfferAmount.toLocaleString('en-IN')}</span></p>
+          <p><strong>Seller:</strong> ${auction.seller?.displayName || 'Auction Seller'}</p>
+        </div>
+        
+        <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p style="margin: 0;"><strong>⏰ Time Limit:</strong> You have 24 hours to accept or reject this counter offer.</p>
+        </div>
+        
+        <p>To respond to this counter offer, please visit the auction page and make your decision.</p>
+        <p>Best regards,<br>The Auction Team</p>
+      </div>
+    `;
+
+  return await sendEmail(buyer.email, subject, text, html);
+}
+
+async function sendCounterOfferRejectedEmail(buyer, auction, counterOfferAmount) {
+  const subject = `Counter offer confirmation for "${auction.title}"`;
+  
+  const text = `
+  Counter offer rejected.
+
+  Auction: ${auction.title}
+  Rejected counter offer: ₹${counterOfferAmount}
+  Seller: ${auction.seller?.displayName || 'Auction Seller'}
+
+  You have rejected the seller's counter offer. The auction has ended without a sale.
+
+  Thank you for participating in our auction platform!
+
+  Best regards,
+  The Auction Team
+    `.trim();
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #6c757d;">Counter Offer Rejected</h1>
+        <p>You have <strong>rejected</strong> the seller's counter offer.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Rejection Details</h3>
+          <p><strong>Item:</strong> ${auction.title}</p>
+          <p><strong>Rejected counter offer:</strong> ₹${counterOfferAmount.toLocaleString('en-IN')}</p>
+          <p><strong>Seller:</strong> ${auction.seller?.displayName || 'Auction Seller'}</p>
+        </div>
+        
+        <p>The auction has ended without a sale. Thank you for participating!</p>
+        <p>Best regards,<br>The Auction Team</p>
+      </div>
+    `;
+
+  return await sendEmail(buyer.email, subject, text, html);
+}
+
 module.exports = {
   sendEmail,
   sendBidAcceptedEmail,
   sendBidAcceptedSellerEmail,
-  sendBidRejectedEmail
+  sendBidRejectedEmail,
+  sendCounterOfferEmail,
+  sendCounterOfferRejectedEmail
 };

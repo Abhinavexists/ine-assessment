@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const { Auction, Bid, User } = require('../models');
 const { placeBid, endAuction } = require('../services/bidServices');
 const { broadcastAuction, notifyUser } = require('../utils/broadcast');
-const { sendBidAcceptedEmail, sendBidAcceptedSellerEmail, sendBidRejectedEmail } = require('../services/emailService');
+const { sendBidAcceptedEmail, sendBidAcceptedSellerEmail, sendBidRejectedEmail, sendCounterOfferEmail, sendCounterOfferRejectedEmail } = require('../services/emailService');
 const { generateInvoice } = require('../services/invoiceService');
 const redis = require('../redis');
 const router = express.Router();
@@ -557,6 +557,384 @@ router.post('/:id/reject', async (req, res) => {
   } catch (error) {
     console.error('Error rejecting bid:', error);
     res.status(500).json({ error: 'Failed to reject bid' });
+  }
+});
+
+router.post('/:id/counter-offer', async (req, res) => {
+  try {
+    const { id: auctionId } = req.params;
+    const { sellerId, counterOfferAmount } = req.body;
+    
+    if (!sellerId || !counterOfferAmount) {
+      return res.status(400).json({ 
+        error: 'sellerId and counterOfferAmount are required' 
+      });
+    }
+    
+    const counterOffer = parseFloat(counterOfferAmount);
+    if (isNaN(counterOffer) || counterOffer <= 0) {
+      return res.status(400).json({ 
+        error: 'Valid counter offer amount is required' 
+      });
+    }
+    
+    const auction = await Auction.findByPk(auctionId);
+    if (!auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+    
+    if (auction.sellerId !== sellerId) {
+      return res.status(403).json({ 
+        error: 'Only the auction owner can make counter offers' 
+      });
+    }
+    
+    if (auction.status !== 'ended') {
+      return res.status(400).json({ 
+        error: 'Counter offers can only be made on ended auctions' 
+      });
+    }
+    
+    const highestBidRaw = await redis.get(`auction:${auctionId}:highest`);
+    if (!highestBidRaw) {
+      return res.status(400).json({ error: 'No bids to counter offer' });
+    }
+    
+    const highestBid = JSON.parse(highestBidRaw);
+    
+    const counterOfferData = {
+      auctionId,
+      sellerId,
+      buyerId: highestBid.userId,
+      originalBid: highestBid.amount,
+      counterOfferAmount: counterOffer,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
+    };
+    
+    await redis.set(
+      `counter-offer:${auctionId}`, 
+      JSON.stringify(counterOfferData),
+      { ex: 24 * 60 * 60 } 
+    );
+    
+    await auction.update({ status: 'counter-offer' });
+    
+    const buyer = await User.findByPk(highestBid.userId);
+    const fullAuction = await Auction.findByPk(auctionId, {
+      include: [{ model: User, as: 'seller' }]
+    });
+    
+    try {
+      if (buyer) {
+        await sendCounterOfferEmail(buyer, fullAuction, highestBid.amount, counterOffer);
+        console.log('Counter offer email sent to buyer');
+      }
+    } catch (error) {
+      console.error('Failed to send counter offer email:', error);
+    }
+    
+    broadcastAuction(auctionId, 'counter-offer:made', {
+      auction: {
+        id: auctionId,
+        title: auction.title,
+        status: 'counter-offer'
+      },
+      counterOffer: {
+        originalBid: highestBid.amount,
+        counterOfferAmount: counterOffer,
+        buyerId: highestBid.userId,
+        buyerName: buyer?.displayName || 'Unknown'
+      },
+      message: `The seller has made a counter offer of ₹${counterOffer.toLocaleString('en-IN')} (Original bid: ₹${highestBid.amount.toLocaleString('en-IN')})`
+    });
+    
+    if (highestBid.userId) {
+      notifyUser(highestBid.userId, 'counter-offer:received', {
+        auctionId,
+        auction: {
+          title: auction.title,
+          sellerName: fullAuction.seller?.displayName || 'Seller'
+        },
+        counterOffer: {
+          originalBid: highestBid.amount,
+          counterOfferAmount: counterOffer
+        },
+        message: `You received a counter offer of ₹${counterOffer.toLocaleString('en-IN')} for "${auction.title}"`
+      });
+    }
+    
+    res.json({
+      message: 'Counter offer sent successfully',
+      auction: {
+        id: auction.id,
+        status: 'counter-offer'
+      },
+      counterOffer: counterOfferData
+    });
+    
+  } catch (error) {
+    console.error('Error making counter offer:', error);
+    res.status(500).json({ error: 'Failed to make counter offer' });
+  }
+});
+
+router.post('/:id/counter-offer/accept', async (req, res) => {
+  try {
+    const { id: auctionId } = req.params;
+    const { buyerId } = req.body;
+    
+    if (!buyerId) {
+      return res.status(400).json({ error: 'buyerId is required' });
+    }
+    
+    const counterOfferRaw = await redis.get(`counter-offer:${auctionId}`);
+    if (!counterOfferRaw) {
+      return res.status(404).json({ error: 'Counter offer not found or expired' });
+    }
+    
+    const counterOffer = JSON.parse(counterOfferRaw);
+    
+    if (counterOffer.buyerId !== buyerId) {
+      return res.status(403).json({ 
+        error: 'Only the designated buyer can accept this counter offer' 
+      });
+    }
+    
+    if (counterOffer.status !== 'pending') {
+      return res.status(400).json({ 
+        error: 'Counter offer is no longer available' 
+      });
+    }
+    
+    const auction = await Auction.findByPk(auctionId);
+    if (!auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+    
+    counterOffer.status = 'accepted';
+    counterOffer.acceptedAt = new Date().toISOString();
+    await redis.set(`counter-offer:${auctionId}`, JSON.stringify(counterOffer), { ex: 24 * 60 * 60 });
+    
+    await auction.update({ status: 'closed' });
+    await endAuction(auctionId);
+    
+    const buyer = await User.findByPk(buyerId);
+    const fullAuction = await Auction.findByPk(auctionId, {
+      include: [{ model: User, as: 'seller' }]
+    });
+    
+    let invoiceBuffer = null;
+    try {
+      if (buyer && fullAuction.seller) {
+        invoiceBuffer = await generateInvoice({
+          auction: fullAuction,
+          buyer: buyer,
+          seller: fullAuction.seller,
+          amount: counterOffer.counterOfferAmount,
+          bidId: null // No specific bid for counter offers
+        });
+        console.log('Counter offer invoice generated successfully');
+      }
+    } catch (error) {
+      console.error('Failed to generate counter offer invoice:', error);
+    }
+    
+    try {
+      if (buyer) {
+        await sendBidAcceptedEmail(buyer, fullAuction, counterOffer.counterOfferAmount, invoiceBuffer);
+        console.log('Counter offer acceptance email sent to buyer');
+      }
+      
+      if (fullAuction.seller) {
+        await sendBidAcceptedSellerEmail(
+          fullAuction.seller, 
+          fullAuction, 
+          counterOffer.counterOfferAmount, 
+          buyer?.displayName || 'Unknown Buyer', 
+          invoiceBuffer
+        );
+        console.log('Counter offer confirmation email sent to seller');
+      }
+    } catch (error) {
+      console.error('Failed to send counter offer emails:', error);
+    }
+    
+    broadcastAuction(auctionId, 'counter-offer:accepted', {
+      auction: {
+        id: auctionId,
+        title: auction.title,
+        status: 'closed'
+      },
+      counterOffer: {
+        finalAmount: counterOffer.counterOfferAmount,
+        buyerId: buyerId,
+        buyerName: buyer?.displayName || 'Unknown'
+      },
+      message: `Counter offer accepted! Final sale price: ₹${counterOffer.counterOfferAmount.toLocaleString('en-IN')}`
+    });
+    
+    notifyUser(buyerId, 'counter-offer:success', {
+      auctionId,
+      auction: {
+        title: auction.title,
+        sellerName: fullAuction.seller?.displayName || 'Seller'
+      },
+      finalAmount: counterOffer.counterOfferAmount,
+      message: `Congratulations! You accepted the counter offer for "${auction.title}" at ₹${counterOffer.counterOfferAmount.toLocaleString('en-IN')}`
+    });
+    
+    notifyUser(auction.sellerId, 'counter-offer:buyer-accepted', {
+      auctionId,
+      auction: {
+        title: auction.title
+      },
+      buyerName: buyer?.displayName || 'Unknown',
+      finalAmount: counterOffer.counterOfferAmount,
+      message: `Great! The buyer accepted your counter offer of ₹${counterOffer.counterOfferAmount.toLocaleString('en-IN')} for "${auction.title}"`
+    });
+    
+    res.json({
+      message: 'Counter offer accepted successfully',
+      auction: {
+        id: auction.id,
+        status: 'closed'
+      },
+      finalAmount: counterOffer.counterOfferAmount
+    });
+    
+  } catch (error) {
+    console.error('Error accepting counter offer:', error);
+    res.status(500).json({ error: 'Failed to accept counter offer' });
+  }
+});
+
+router.post('/:id/counter-offer/reject', async (req, res) => {
+  try {
+    const { id: auctionId } = req.params;
+    const { buyerId } = req.body;
+    
+    if (!buyerId) {
+      return res.status(400).json({ error: 'buyerId is required' });
+    }
+    
+    const counterOfferRaw = await redis.get(`counter-offer:${auctionId}`);
+    if (!counterOfferRaw) {
+      return res.status(404).json({ error: 'Counter offer not found or expired' });
+    }
+    
+    const counterOffer = JSON.parse(counterOfferRaw);
+    
+    if (counterOffer.buyerId !== buyerId) {
+      return res.status(403).json({ 
+        error: 'Only the designated buyer can reject this counter offer' 
+      });
+    }
+    
+    if (counterOffer.status !== 'pending') {
+      return res.status(400).json({ 
+        error: 'Counter offer is no longer available' 
+      });
+    }
+    
+    const auction = await Auction.findByPk(auctionId);
+    if (!auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+    
+    counterOffer.status = 'rejected';
+    counterOffer.rejectedAt = new Date().toISOString();
+    await redis.set(`counter-offer:${auctionId}`, JSON.stringify(counterOffer), { ex: 24 * 60 * 60 });
+    
+    await auction.update({ status: 'ended' });
+    await endAuction(auctionId);
+    
+    const buyer = await User.findByPk(buyerId);
+    const fullAuction = await Auction.findByPk(auctionId, {
+      include: [{ model: User, as: 'seller' }]
+    });
+    
+    try {
+      if (buyer) {
+        await sendCounterOfferRejectedEmail(buyer, fullAuction, counterOffer.counterOfferAmount);
+        console.log('Counter offer rejection email sent to buyer');
+      }
+    } catch (error) {
+      console.error('Failed to send counter offer rejection email:', error);
+    }
+    
+    broadcastAuction(auctionId, 'counter-offer:rejected', {
+      auction: {
+        id: auctionId,
+        title: auction.title,
+        status: 'ended'
+      },
+      counterOffer: {
+        rejectedAmount: counterOffer.counterOfferAmount,
+        buyerId: buyerId,
+        buyerName: buyer?.displayName || 'Unknown'
+      },
+      message: `Counter offer of ₹${counterOffer.counterOfferAmount.toLocaleString('en-IN')} was rejected. Auction ended without a sale.`
+    });
+    
+    notifyUser(buyerId, 'counter-offer:rejected-confirmed', {
+      auctionId,
+      auction: {
+        title: auction.title,
+        sellerName: fullAuction.seller?.displayName || 'Seller'
+      },
+      rejectedAmount: counterOffer.counterOfferAmount,
+      message: `You rejected the counter offer of ₹${counterOffer.counterOfferAmount.toLocaleString('en-IN')} for "${auction.title}"`
+    });
+    
+    notifyUser(auction.sellerId, 'counter-offer:buyer-rejected', {
+      auctionId,
+      auction: {
+        title: auction.title
+      },
+      buyerName: buyer?.displayName || 'Unknown',
+      rejectedAmount: counterOffer.counterOfferAmount,
+      message: `The buyer rejected your counter offer of ₹${counterOffer.counterOfferAmount.toLocaleString('en-IN')} for "${auction.title}"`
+    });
+    
+    res.json({
+      message: 'Counter offer rejected',
+      auction: {
+        id: auction.id,
+        status: 'ended'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error rejecting counter offer:', error);
+    res.status(500).json({ error: 'Failed to reject counter offer' });
+  }
+});
+
+router.get('/:id/counter-offer', async (req, res) => {
+  try {
+    const { id: auctionId } = req.params;
+    
+    const counterOfferRaw = await redis.get(`counter-offer:${auctionId}`);
+    if (!counterOfferRaw) {
+      return res.status(404).json({ error: 'No counter offer found' });
+    }
+    
+    const counterOffer = JSON.parse(counterOfferRaw);
+      
+    if (new Date() > new Date(counterOffer.expiresAt)) {
+      await redis.del(`counter-offer:${auctionId}`);
+      return res.status(404).json({ error: 'Counter offer has expired' });
+    }
+    
+    res.json({
+      counterOffer: counterOffer
+    });
+    
+  } catch (error) {
+    console.error('Error fetching counter offer:', error);
+    res.status(500).json({ error: 'Failed to fetch counter offer' });
   }
 });
 
