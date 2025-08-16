@@ -405,94 +405,80 @@ export default function AuctionDetail() {
   }
 
   return (
-    <div style={{ 
-      maxWidth: '800px', 
-      margin: '0 auto', 
-      padding: '2rem',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>
-          ← Back to Home
+    <div className="w-full max-w-4xl mx-auto">
+      {/* Back Navigation */}
+      <div className="mb-4 sm:mb-6">
+        <Link 
+          to="/" 
+          className="inline-flex items-center text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          ← <span className="ml-1">Back to Home</span>
         </Link>
       </div>
 
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0.5rem 1rem',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '4px',
-        marginBottom: '1rem',
-        fontSize: '0.9rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            backgroundColor: getConnectionStatusColor()
-          }}></span>
-          {connectionStatus === 'connected' ? 'Live Updates Active' : 'Connecting...'}
+      {/* Connection Status */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 gap-2 sm:gap-0">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${
+            connectionStatus === 'connected' ? 'bg-green-500' : 'bg-yellow-500'
+          }`}></span>
+          <span className="text-sm font-medium">
+            {connectionStatus === 'connected' ? 'Live Updates Active' : 'Connecting...'}
+          </span>
         </div>
         {viewerCount > 0 && (
-          <div>👥 {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}</div>
+          <div className="text-sm text-gray-600">
+            👥 {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}
+          </div>
         )}
       </div>
 
-      <div style={{
-        backgroundColor: '#fff',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        padding: '1.5rem',
-        marginBottom: '1.5rem'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'flex-start',
-          marginBottom: '1rem'
-        }}>
-          <h1 style={{ margin: 0, fontSize: '1.8rem' }}>{auction.title}</h1>
-          <div style={{
-            padding: '4px 12px',
-            borderRadius: '4px',
-            fontSize: '0.8rem',
-            fontWeight: 'bold',
-            color: 'white',
-            backgroundColor: getStatusColor(auction.status)
-          }}>
+      {/* Auction Details Card */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+        {/* Title and Status */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
+            {auction.title}
+          </h1>
+          <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold text-white self-start ${
+            auction.status === 'live' ? 'bg-green-500' :
+            auction.status === 'scheduled' ? 'bg-blue-500' :
+            auction.status === 'ended' ? 'bg-red-500' : 'bg-gray-500'
+          }`}>
             {auction.status.toUpperCase()}
           </div>
         </div>
 
-        <p style={{ color: '#666', margin: '1rem 0' }}>
+        {/* Description */}
+        <p className="text-gray-600 mb-4 sm:mb-6 leading-relaxed">
           {auction.description}
         </p>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1rem',
-          marginTop: '1rem'
-        }}>
-          <div>
-            <strong>Starting Price:</strong><br />
-            {formatPrice(auction.startingPrice)}
+        {/* Auction Info Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="text-sm font-medium text-gray-500 mb-1">Starting Price</div>
+            <div className="text-lg font-semibold text-gray-900">
+              {formatPrice(auction.startingPrice)}
+            </div>
           </div>
-          <div>
-            <strong>Bid Increment:</strong><br />
-            {formatPrice(auction.bidIncrement)}
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="text-sm font-medium text-gray-500 mb-1">Bid Increment</div>
+            <div className="text-lg font-semibold text-gray-900">
+              {formatPrice(auction.bidIncrement)}
+            </div>
           </div>
-          <div>
-            <strong>Seller:</strong><br />
-            {auction.seller?.displayName || 'Anonymous'}
+          <div className="bg-gray-50 p-3 rounded-lg sm:col-span-2 lg:col-span-1">
+            <div className="text-sm font-medium text-gray-500 mb-1">Seller</div>
+            <div className="text-lg font-semibold text-gray-900">
+              {auction.seller?.displayName || 'Anonymous'}
+            </div>
           </div>
         </div>
 
+        {/* Countdown for Live Auctions */}
         {auction.status === 'live' && (
-          <div style={{ marginTop: '1rem' }}>
+          <div className="mt-4">
             <Countdown 
               endAt={auction.endAt} 
               onComplete={() => setAuction(prev => ({ ...prev, status: 'ended' }))}
@@ -501,26 +487,23 @@ export default function AuctionDetail() {
         )}
       </div>
 
-      <div style={{
-        backgroundColor: '#fff',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        padding: '1.5rem',
-        marginBottom: '1.5rem',
-        textAlign: 'center'
-      }}>
-        <h2 style={{ margin: '0 0 1rem 0' }}>Current Highest Bid</h2>
-        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#007bff' }}>
+      {/* Current Highest Bid */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 text-center">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
+          Current Highest Bid
+        </h2>
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-600 mb-2">
           {formatPrice(highest?.amount || auction.startingPrice)}
         </div>
         {highest && (
-          <div style={{ color: '#666', marginTop: '0.5rem' }}>
-            by {highest.displayName} • {new Date(highest.at).toLocaleString()}
+          <div className="text-sm sm:text-base text-gray-600">
+            by <span className="font-medium">{highest.displayName}</span> • {new Date(highest.at).toLocaleString()}
           </div>
         )}
       </div>
 
-      <div style={{ marginBottom: '1.5rem' }}>
+      {/* Bid Box */}
+      <div className="mb-4 sm:mb-6">
         <BidBox 
           auctionId={id} 
           highest={highest} 
@@ -529,91 +512,47 @@ export default function AuctionDetail() {
         />
       </div>
 
+      {/* Counter Offer Section */}
       {counterOffer && counterOffer.buyerId === getUserId() && counterOffer.status === 'pending' && (
-        <div style={{
-          backgroundColor: '#fff3cd',
-          border: '2px solid #ffc107',
-          borderRadius: '8px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem'
-        }}>
-          <h3 style={{ 
-            margin: '0 0 1rem 0', 
-            color: '#856404',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
-            Counter Offer Received!
+        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-lg font-semibold text-yellow-800 mb-4 flex items-center gap-2">
+            🤝 Counter Offer Received!
           </h3>
           
-          <div style={{
-            backgroundColor: 'white',
-            padding: '1rem',
-            borderRadius: '6px',
-            marginBottom: '1rem'
-          }}>
-            <div style={{ marginBottom: '0.5rem' }}>
-              <strong>Your Original Bid:</strong> ₹{counterOffer.originalBid?.toLocaleString('en-IN')}
+          <div className="bg-white p-4 rounded-lg mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+              <div>
+                <div className="text-sm font-medium text-gray-500">Your Original Bid</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  ₹{counterOffer.originalBid?.toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500">Seller's Counter Offer</div>
+                <div className="text-lg font-semibold text-blue-600">
+                  ₹{counterOffer.counterOfferAmount?.toLocaleString('en-IN')}
+                </div>
+              </div>
             </div>
-            <div style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>
-              <strong>Seller's Counter Offer:</strong> 
-              <span style={{ color: '#007bff', fontWeight: 'bold', marginLeft: '0.5rem' }}>
-                ₹{counterOffer.counterOfferAmount?.toLocaleString('en-IN')}
-              </span>
-            </div>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>
-              <strong>Expires:</strong> {new Date(counterOffer.expiresAt).toLocaleString()}
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Expires:</span> {new Date(counterOffer.expiresAt).toLocaleString()}
             </div>
           </div>
 
-          <div style={{
-            backgroundColor: '#fff3cd',
-            padding: '0.75rem',
-            borderRadius: '4px',
-            marginBottom: '1rem',
-            fontSize: '0.9rem',
-            color: '#856404'
-          }}>
+          <div className="bg-yellow-100 p-3 rounded-lg mb-4 text-sm text-yellow-800">
             The seller has proposed a different price. You can accept or reject this counter offer.
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => respondToCounterOffer('accept')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#218838'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
+              className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
               Accept Counter Offer
             </button>
             <button
               onClick={() => respondToCounterOffer('reject')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#c82333'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#dc3545'}
+              className="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
             >
               Reject Counter Offer
             </button>
@@ -621,33 +560,23 @@ export default function AuctionDetail() {
         </div>
       )}
 
+      {/* Counter Offer Info for Others */}
       {counterOffer && counterOffer.buyerId !== getUserId() && auction?.status === 'counter-offer' && (
-        <div style={{
-          backgroundColor: '#e3f2fd',
-          border: '1px solid #2196f3',
-          borderRadius: '8px',
-          padding: '1rem',
-          marginBottom: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <div style={{ color: '#1976d2', fontWeight: 'bold' }}>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 sm:mb-6 text-center">
+          <div className="text-blue-800 font-semibold mb-2">
             Counter offer pending buyer response
           </div>
-          <div style={{ fontSize: '0.9rem', color: '#1565c0', marginTop: '0.5rem' }}>
+          <div className="text-sm text-blue-700">
             Seller proposed: ₹{counterOffer.counterOfferAmount?.toLocaleString('en-IN')}
           </div>
         </div>
       )}
 
+      {/* Bid History */}
       {bidHistory.length > 0 && (
-        <div style={{
-          backgroundColor: '#fff',
-          border: '1px solid #ddd',
-          borderRadius: '8px',
-          padding: '1.5rem'
-        }}>
-          <h3 style={{ margin: '0 0 1rem 0' }}>Recent Bids</h3>
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Bids</h3>
+          <div className="max-h-80 overflow-y-auto space-y-3">
             {bidHistory.map((bid, index) => {
               const isMyBid = bid.bidderId === getUserId();
               const isHighestBid = highest && bid.id === highest.bidId;
@@ -655,55 +584,32 @@ export default function AuctionDetail() {
               return (
                 <div 
                   key={bid.id || index}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '0.5rem 0',
-                    borderBottom: index < bidHistory.length - 1 ? '1px solid #eee' : 'none',
-                    backgroundColor: isMyBid ? '#f0f8ff' : 'transparent'
-                  }}
+                  className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg border-b border-gray-100 last:border-b-0 ${
+                    isMyBid ? 'bg-blue-50' : 'bg-gray-50'
+                  }`}
                 >
-                  <div>
-                    <strong>{formatPrice(bid.amount)}</strong>
-                    <span style={{ color: '#666', marginLeft: '0.5rem' }}>
-                      by {bid.bidderName}
+                  <div className="mb-2 sm:mb-0">
+                    <div className="font-semibold text-lg text-gray-900">
+                      {formatPrice(bid.amount)}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      by <span className="font-medium">{bid.bidderName}</span>
                       {isMyBid && (
-                        <span style={{ 
-                          color: '#007bff', 
-                          fontWeight: 'bold',
-                          marginLeft: '0.25rem' 
-                        }}>
-                          (You)
-                        </span>
+                        <span className="text-blue-600 font-semibold ml-1">(You)</span>
                       )}
                       {isHighestBid && (
-                        <span style={{ 
-                          color: '#28a745', 
-                          fontWeight: 'bold',
-                          marginLeft: '0.25rem' 
-                        }}>
-                          (Highest)
-                        </span>
+                        <span className="text-green-600 font-semibold ml-1">(Highest)</span>
                       )}
-                    </span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: '#666', fontSize: '0.8rem' }}>
+                  <div className="flex items-center justify-between sm:justify-end gap-3">
+                    <span className="text-sm text-gray-500">
                       {new Date(bid.createdAt).toLocaleTimeString()}
                     </span>
                     {isMyBid && !isHighestBid && auction?.status === 'live' && (
                       <button
                         onClick={() => deleteBid(bid.id)}
-                        style={{
-                          padding: '0.25rem 0.5rem',
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer'
-                        }}
+                        className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
                         title="Delete your bid"
                       >
                         Delete

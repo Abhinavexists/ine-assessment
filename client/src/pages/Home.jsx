@@ -94,18 +94,21 @@ export default function Home() {
   const currentFilterOption = filterOptions.find(opt => opt.value === filter);
 
   return (
-    <div className="container py-8">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-slate-900 mb-4">
+    <div className="w-full">
+      {/* Hero Section */}
+      <div className="text-center mb-8 sm:mb-12">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-2 sm:mb-4">
           Discover Amazing Auctions
         </h1>
-        <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg lg:text-xl text-slate-600 max-w-2xl mx-auto px-4">
           Join live auctions, place bids, and win unique items from sellers worldwide.
         </p>
       </div>
 
-      <div className="mb-8">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+      {/* Search and Filters */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:gap-6 lg:items-center lg:justify-between">
+          {/* Search Bar */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
@@ -113,25 +116,31 @@ export default function Home() {
               placeholder="Search auctions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pl-10"
+              className="input pl-10 w-full"
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2 justify-start lg:justify-end">
             {filterOptions.map((option) => {
               const Icon = option.icon;
               return (
                 <button
                   key={option.value}
                   onClick={() => setFilter(option.value)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                     filter === option.value
                       ? 'bg-primary-100 text-primary-700 border border-primary-200'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${filter === option.value ? 'text-primary-600' : option.color}`} />
-                  {option.label}
+                  <Icon className={`h-3 w-3 sm:h-4 sm:w-4 ${filter === option.value ? 'text-primary-600' : option.color}`} />
+                  <span className="hidden sm:inline">{option.label}</span>
+                  <span className="sm:hidden">
+                    {option.value === 'live' ? 'Live' : 
+                     option.value === 'scheduled' ? 'Soon' : 
+                     option.value === 'ended' ? 'Ended' : 'Sold'}
+                  </span>
                 </button>
               );
             })}
@@ -194,15 +203,15 @@ export default function Home() {
           )}
 
           {filteredAuctions.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="mx-auto max-w-md">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 mb-6">
-                  <Filter className="h-8 w-8 text-slate-600" />
+            <div className="text-center py-12 sm:py-16">
+              <div className="mx-auto max-w-md px-4">
+                <div className="mx-auto flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-slate-100 mb-4 sm:mb-6">
+                  <Filter className="h-6 w-6 sm:h-8 sm:w-8 text-slate-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2">
                   {searchTerm ? 'No matching auctions found' : `No ${filter} auctions found`}
                 </h3>
-                <p className="text-slate-600 mb-6">
+                <p className="text-sm sm:text-base text-slate-600 mb-4 sm:mb-6">
                   {searchTerm 
                     ? 'Try adjusting your search terms or browse all auctions.'
                     : filter === 'live' 
@@ -215,7 +224,7 @@ export default function Home() {
                   {searchTerm && (
                     <button 
                       onClick={() => setSearchTerm('')}
-                      className="btn btn-secondary btn-md"
+                      className="btn btn-secondary btn-md w-full sm:w-auto"
                     >
                       Clear search
                     </button>
@@ -223,7 +232,7 @@ export default function Home() {
                   {filter !== 'live' && (
                     <button 
                       onClick={() => setFilter('live')}
-                      className="btn btn-primary btn-md"
+                      className="btn btn-primary btn-md w-full sm:w-auto"
                     >
                       <Zap className="h-4 w-4 mr-2" />
                       View Live Auctions
@@ -243,12 +252,12 @@ export default function Home() {
       )}
     
       {!loading && !error && filter === 'live' && filteredAuctions.length > 0 && (
-        <div className="mt-12 bg-gradient-to-r from-primary-50 to-success-50 rounded-xl p-6">
+        <div className="mt-8 sm:mt-12 bg-gradient-to-r from-primary-50 to-success-50 rounded-xl p-4 sm:p-6">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2">
               🔥 Live Auction Activity
             </h3>
-            <p className="text-slate-600">
+            <p className="text-sm sm:text-base text-slate-600">
               {filteredAuctions.length} auction{filteredAuctions.length !== 1 ? 's' : ''} currently live • 
               Join the excitement and place your bids now!
             </p>

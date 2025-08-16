@@ -156,18 +156,19 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Quick Bid Options
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {quickBidOptions(minimumBid).map((bidAmount, index) => (
               <button
                 key={index}
                 onClick={() => setAmount(bidAmount)}
-                className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                className={`px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-colors ${
                   amount === bidAmount
                     ? 'border-primary-300 bg-primary-100 text-primary-700'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                {formatPrice(bidAmount)}
+                <span className="hidden sm:inline">{formatPrice(bidAmount)}</span>
+                <span className="sm:hidden">₹{(bidAmount / 1000).toFixed(0)}k</span>
               </button>
             ))}
           </div>
@@ -240,7 +241,7 @@ export default function BidBox({ auctionId, highest, increment, auction }) {
 
         <div className="mt-6 p-3 bg-slate-50 rounded-lg">
           <h4 className="text-sm font-medium text-slate-900 mb-2">Bidding Guidelines</h4>
-          <ul className="text-xs text-slate-600 space-y-1">
+          <ul className="text-xs sm:text-sm text-slate-600 space-y-1">
             <li>• Bids must be in increments of {formatPrice(Number(increment) || 1)}</li>
             <li>• All bids are final and cannot be retracted</li>
             <li>• Highest bid when auction ends wins</li>

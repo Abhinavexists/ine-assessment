@@ -303,427 +303,271 @@ export default function SellerConsole() {
         </Link>
       </div>
     }>
-      <div style={{ 
-        maxWidth: '1000px', 
-        margin: '0 auto', 
-        padding: '2rem',
-        fontFamily: 'Arial, sans-serif'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '2rem'
-        }}>
-          <h1 style={{ margin: 0 }}>Seller Console</h1>
-          <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>
-            ← Back to Home
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Seller Console</h1>
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 transition-colors self-start sm:self-auto"
+          >
+            ← <span className="ml-1">Back to Home</span>
           </Link>
         </div>
 
-      <div style={{
-        backgroundColor: '#fff',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        padding: '1.5rem',
-        marginBottom: '2rem'
-      }}>
-        <h2 style={{ margin: '0 0 1.5rem 0' }}>Create New Auction</h2>
+        {/* Create New Auction Form */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Create New Auction</h2>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '1rem'
-        }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Title *
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title *
+              </label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                placeholder="e.g., Vintage Guitar"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Starting Price (₹) *
+              </label>
+              <input
+                type="number"
+                value={form.startingPrice}
+                onChange={(e) => handleInputChange('startingPrice', e.target.value)}
+                placeholder="1000"
+                min="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bid Increment (₹) *
+              </label>
+              <input
+                type="number"
+                value={form.bidIncrement}
+                onChange={(e) => handleInputChange('bidIncrement', e.target.value)}
+                placeholder="50"
+                min="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Start Time *
+              </label>
+              <input
+                type="datetime-local"
+                value={form.startAt}
+                onChange={(e) => handleInputChange('startAt', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                End Time *
+              </label>
+              <input
+                type="datetime-local"
+                value={form.endAt}
+                onChange={(e) => handleInputChange('endAt', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 sm:mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description *
             </label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              placeholder="e.g., Vintage Guitar"
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
+            <textarea
+              value={form.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Detailed description of the item..."
+              rows="4"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Starting Price (₹) *
-            </label>
-            <input
-              type="number"
-              value={form.startingPrice}
-              onChange={(e) => handleInputChange('startingPrice', e.target.value)}
-              placeholder="1000"
-              min="1"
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            />
-          </div>
+          {createError && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{createError}</p>
+            </div>
+          )}
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Bid Increment (₹) *
-            </label>
-            <input
-              type="number"
-              value={form.bidIncrement}
-              onChange={(e) => handleInputChange('bidIncrement', e.target.value)}
-              placeholder="50"
-              min="1"
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            />
-          </div>
+          {createSuccess && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">{createSuccess}</p>
+            </div>
+          )}
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Start Time *
-            </label>
-            <input
-              type="datetime-local"
-              value={form.startAt}
-              onChange={(e) => handleInputChange('startAt', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              End Time *
-            </label>
-            <input
-              type="datetime-local"
-              value={form.endAt}
-              onChange={(e) => handleInputChange('endAt', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            />
-          </div>
+          <button
+            onClick={createAuction}
+            disabled={isCreating}
+            className={`mt-4 sm:mt-6 w-full sm:w-auto px-6 py-3 font-semibold rounded-lg transition-colors ${
+              isCreating 
+                ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            {isCreating ? 'Creating...' : 'Create Auction'}
+          </button>
         </div>
-
-        <div style={{ marginTop: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-            Description *
-          </label>
-          <textarea
-            value={form.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            placeholder="Detailed description of the item..."
-            rows="4"
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              resize: 'vertical'
-            }}
-          />
-        </div>
-
-        {createError && (
-          <div style={{
-            marginTop: '1rem',
-            padding: '0.75rem',
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-            border: '1px solid #f5c6cb',
-            borderRadius: '4px'
-          }}>
-            {createError}
-          </div>
-        )}
-
-        {createSuccess && (
-          <div style={{
-            marginTop: '1rem',
-            padding: '0.75rem',
-            backgroundColor: '#d4edda',
-            color: '#155724',
-            border: '1px solid #c3e6cb',
-            borderRadius: '4px'
-          }}>
-            {createSuccess}
-          </div>
-        )}
-
-        <button
-          onClick={createAuction}
-          disabled={isCreating}
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem 1.5rem',
-            backgroundColor: isCreating ? '#6c757d' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '1rem',
-            fontWeight: 'bold',
-            cursor: isCreating ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isCreating ? 'Creating...' : 'Create Auction'}
-        </button>
-      </div>
       
-      <div style={{
-        backgroundColor: '#fff',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        padding: '1.5rem'
-      }}>
-        <h2 style={{ margin: '0 0 1.5rem 0' }}>
-          My Auctions ({myAuctions.length})
-        </h2>
+        {/* My Auctions Section */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">
+            My Auctions ({myAuctions.length})
+          </h2>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            Loading your auctions...
-          </div>
-        ) : myAuctions.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            You haven't created any auctions yet.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {myAuctions.map(auction => (
-              <div 
-                key={auction.id}
-                style={{
-                  border: '1px solid #eee',
-                  borderRadius: '4px',
-                  padding: '1rem',
-                  backgroundColor: '#f8f9fa'
-                }}
-              >
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'flex-start',
-                  marginBottom: '0.5rem'
-                }}>
-                  <h4 style={{ margin: 0 }}>{auction.title}</h4>
-                  <div style={{
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.7rem',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    backgroundColor: getStatusColor(auction.status)
-                  }}>
-                    {auction.status.toUpperCase()}
-                  </div>
-                </div>
-
-                <p style={{ color: '#666', margin: '0.5rem 0', fontSize: '0.9rem' }}>
-                  {auction.description}
-                </p>
-
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                  gap: '1rem',
-                  margin: '0.5rem 0',
-                  fontSize: '0.8rem'
-                }}>
-                  <div>
-                    <strong>Starting:</strong> {formatPrice(auction.startingPrice)}
-                  </div>
-                  <div>
-                    <strong>Increment:</strong> {formatPrice(auction.bidIncrement)}
-                  </div>
-                  <div>
-                    <strong>Starts:</strong> {dayjs(auction.startAt).format('MMM D, HH:mm')}
-                  </div>
-                  <div>
-                    <strong>Ends:</strong> {dayjs(auction.endAt).format('MMM D, HH:mm')}
-                  </div>
-                </div>
-
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '0.5rem', 
-                  marginTop: '1rem',
-                  flexWrap: 'wrap'
-                }}>
-                  <Link 
-                    to={`/auction/${auction.id}`}
-                    style={{
-                      padding: '0.25rem 0.75rem',
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      textDecoration: 'none',
-                      borderRadius: '3px',
-                      fontSize: '0.8rem'
-                    }}
-                  >
-                    View Details
-                  </Link>
-
-                  <button
-                    onClick={() => deleteAuction(auction.id)}
-                    style={{
-                      padding: '0.25rem 0.75rem',
-                      backgroundColor: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer'
-                    }}
-                    title="Delete this auction"
-                  >
-                    Delete
-                  </button>
-
-                  {auction.status === 'ended' && (
-                    <>
-                      <button
-                        onClick={() => handleAuctionAction(auction.id, 'accept')}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          backgroundColor: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Accept Bid
-                      </button>
-                      <button
-                        onClick={() => showCounterOfferForm(auction.id)}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          backgroundColor: '#007bff',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Counter Offer
-                      </button>
-                      <button
-                        onClick={() => handleAuctionAction(auction.id, 'reject')}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Reject All
-                      </button>
-                    </>
-                  )}
-
-                  {auction.status === 'counter-offer' && (
-                    <div style={{
-                      padding: '0.5rem',
-                      backgroundColor: '#fff3cd',
-                      borderRadius: '4px',
-                      border: '1px solid #ffc107',
-                      fontSize: '0.8rem',
-                      color: '#856404'
-                    }}>
-                      ⏰ Counter offer pending buyer response
+          {loading ? (
+            <div className="text-center py-8 text-gray-600">
+              Loading your auctions...
+            </div>
+          ) : myAuctions.length === 0 ? (
+            <div className="text-center py-8 text-gray-600">
+              You haven't created any auctions yet.
+            </div>
+          ) : (
+            <div className="space-y-4 sm:space-y-6">
+              {myAuctions.map(auction => (
+                <div 
+                  key={auction.id}
+                  className="border border-gray-200 rounded-lg p-4 sm:p-5 bg-gray-50"
+                >
+                  {/* Title and Status */}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4 mb-3">
+                    <h4 className="text-lg font-semibold text-gray-900">{auction.title}</h4>
+                    <div 
+                      className={`inline-flex px-2 py-1 rounded text-xs font-semibold text-white self-start ${
+                        auction.status === 'live' ? 'bg-green-500' :
+                        auction.status === 'scheduled' ? 'bg-blue-500' :
+                        auction.status === 'ended' ? 'bg-red-500' :
+                        auction.status === 'counter-offer' ? 'bg-yellow-500' : 'bg-gray-500'
+                      }`}
+                    >
+                      {auction.status.toUpperCase()}
                     </div>
-                  )}
+                  </div>
 
-                  {/* Counter Offer Form */}
-                  {showCounterOfferFor === auction.id && (
-                    <div style={{
-                      marginTop: '0.5rem',
-                      padding: '1rem',
-                      backgroundColor: '#f8f9fa',
-                      borderRadius: '4px',
-                      border: '1px solid #dee2e6'
-                    }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
-                        Make Counter Offer
-                      </h4>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <input
-                          type="number"
-                          value={counterOfferAmount}
-                          onChange={(e) => setCounterOfferAmount(e.target.value)}
-                          placeholder="Enter counter offer amount"
-                          style={{
-                            flex: 1,
-                            padding: '0.25rem 0.5rem',
-                            border: '1px solid #ddd',
-                            borderRadius: '3px',
-                            fontSize: '0.8rem'
-                          }}
-                        />
+                  {/* Description */}
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {auction.description}
+                  </p>
+
+                  {/* Auction Details Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-sm">
+                    <div>
+                      <div className="text-gray-500 font-medium">Starting</div>
+                      <div className="font-semibold">{formatPrice(auction.startingPrice)}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500 font-medium">Increment</div>
+                      <div className="font-semibold">{formatPrice(auction.bidIncrement)}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500 font-medium">Starts</div>
+                      <div className="font-semibold">{dayjs(auction.startAt).format('MMM D, HH:mm')}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500 font-medium">Ends</div>
+                      <div className="font-semibold">{dayjs(auction.endAt).format('MMM D, HH:mm')}</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Link 
+                      to={`/auction/${auction.id}`}
+                      className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors"
+                    >
+                      View Details
+                    </Link>
+
+                    <button
+                      onClick={() => deleteAuction(auction.id)}
+                      className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors"
+                      title="Delete this auction"
+                    >
+                      Delete
+                    </button>
+
+                    {auction.status === 'ended' && (
+                      <>
                         <button
-                          onClick={() => makeCounterOffer(auction.id)}
-                          style={{
-                            padding: '0.25rem 0.5rem',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '3px',
-                            fontSize: '0.8rem',
-                            cursor: 'pointer'
-                          }}
+                          onClick={() => handleAuctionAction(auction.id, 'accept')}
+                          className="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors"
                         >
-                          Send
+                          Accept Bid
                         </button>
                         <button
-                          onClick={cancelCounterOffer}
-                          style={{
-                            padding: '0.25rem 0.5rem',
-                            backgroundColor: '#6c757d',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '3px',
-                            fontSize: '0.8rem',
-                            cursor: 'pointer'
-                          }}
+                          onClick={() => showCounterOfferForm(auction.id)}
+                          className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors"
                         >
-                          Cancel
+                          Counter Offer
                         </button>
+                        <button
+                          onClick={() => handleAuctionAction(auction.id, 'reject')}
+                          className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors"
+                        >
+                          Reject All
+                        </button>
+                      </>
+                    )}
+
+                    {auction.status === 'counter-offer' && (
+                      <div className="px-3 py-2 bg-yellow-100 border border-yellow-300 rounded text-sm text-yellow-800">
+                        ⏰ Counter offer pending buyer response
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Counter Offer Form */}
+                    {showCounterOfferFor === auction.id && (
+                      <div className="mt-3 p-4 bg-gray-100 border border-gray-300 rounded-lg">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                          Make Counter Offer
+                        </h4>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="number"
+                            value={counterOfferAmount}
+                            onChange={(e) => setCounterOfferAmount(e.target.value)}
+                            placeholder="Enter counter offer amount"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => makeCounterOffer(auction.id)}
+                              className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors"
+                            >
+                              Send
+                            </button>
+                            <button
+                              onClick={cancelCounterOffer}
+                              className="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded hover:bg-gray-700 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </RequireAuth>
   );
 }
