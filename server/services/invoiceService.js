@@ -165,14 +165,14 @@ async function generateInvoice({ auction, buyer, seller, amount, bidId = null })
 async function generateInvoiceFile(options) {
   const buffer = await generateInvoice(options);
   const fileName = `invoice-${options.auction.id}-${Date.now()}.pdf`;
-  const filePath = path.join(__dirname, '../tmp', fileName);
+  const filePath = path.join('/tmp', fileName);
   
   fs.writeFileSync(filePath, buffer);
   return filePath;
 }
 
 function cleanupOldInvoices() {
-  const tmpDir = path.join(__dirname, '../tmp');
+  const tmpDir = '/tmp';
   const files = fs.readdirSync(tmpDir);
   const now = Date.now();
   const oneDay = 24 * 60 * 60 * 1000;
